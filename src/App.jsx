@@ -1,29 +1,28 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import {
-  Volume2, Trophy, ArrowRight, Sparkles, Star, Home, ArrowLeft,
-  BookOpen, Users, PawPrint, Apple, Palette, Hash, Eye, Ear,
-  HelpCircle, Lightbulb, BookX, Heart, GraduationCap
+import { 
+  Volume2, Trophy, ArrowRight, Sparkles, Star, Home, ArrowLeft, 
+  BookOpen, Users, PawPrint, Apple, Palette, Hash, Eye, Ear, 
+  HelpCircle, Lightbulb, BookX, Heart, GraduationCap, Play
 } from 'lucide-react';
 
-// --- 1. 数据准备区 ---
-// (数据保持不变，颜色类名不仅用于样式，也用于确保 Tailwind 不会清理掉它们)
-
+// --- 1. 辅助工具：颜色生成 ---
 const getColor = (index) => {
   const colors = [
-    "text-pink-500", "text-blue-500", "text-green-500",
+    "text-pink-500", "text-blue-500", "text-green-500", 
     "text-purple-500", "text-orange-500", "text-teal-600",
     "text-indigo-500", "text-rose-500", "text-cyan-600"
   ];
   return colors[index % colors.length];
 };
 
+// --- 2. 数据准备区 ---
 const UNIT_DATA = [
   {
     id: 1,
     title: "Unit 1 身体部位",
     subtitle: "Body Parts",
     themeColor: "bg-rose-100 border-rose-300 text-rose-600",
-    icon: <Users />, // 图标组件这里只传引用，样式在渲染时动态加
+    icon: <Users />,
     words: [
       { word: "name", cn: "名字", emoji: "📛", syllables: ["name"] },
       { word: "nice", cn: "友好的", emoji: "😊", syllables: ["nice"] },
@@ -183,8 +182,7 @@ const UNIT_DATA = [
   }
 ];
 
-// --- 2. 错题本管理 ---
-
+// --- 3. 错题本管理 (LocalStorage) ---
 const STORAGE_KEY = 'spellingGame_mistakes_v4';
 
 const getMistakes = () => {
@@ -227,12 +225,12 @@ const updateMistakeProgress = (wordStr, isCorrect) => {
   }
 };
 
-// --- 3. 游戏主组件 ---
+// --- 4. 核心游戏组件 (UI 重构版) ---
 
 function GameScreen({ words, mode, onBack, isMistakeMode = false }) {
   const workingWords = useMemo(() => {
-    if (Array.isArray(words)) return words;
-    return Object.values(words).sort(() => Math.random() - 0.5);
+     if (Array.isArray(words)) return words;
+     return Object.values(words).sort(() => Math.random() - 0.5);
   }, [words]);
 
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -242,35 +240,65 @@ function GameScreen({ words, mode, onBack, isMistakeMode = false }) {
   const [score, setScore] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
   const [shake, setShake] = useState(false);
-  const [showHint, setShowHint] = useState(false);
-  const [currentHearts, setCurrentHearts] = useState(0);
+  const [showHint, setShowHint] = useState(false); 
+  const [currentHearts, setCurrentHearts] = useState(0); 
   const [graduatedAnimation, setGraduatedAnimation] = useState(false);
-  const audioPlayedRef = useRef(false);
-
+  const [showLevelComplete, setShowLevelComplete] = useState(false); // 新增：关卡完成弹窗
+  
   const currentWordObj = workingWords[currentIndex];
 
+  // 初始化单词
   useEffect(() => {
     if (currentWordObj) {
       initWord(currentWordObj);
-      audioPlayedRef.current = false;
       if (isMistakeMode) {
         setCurrentHearts(currentWordObj.hearts || 0);
       }
     }
   }, [currentIndex, currentWordObj]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!audioPlayedRef.current && currentWordObj && !graduatedAnimation) {
-        playAudio();
-        audioPlayedRef.current = true;
-      }
-    }, 500);
-    return () => {
-      clearTimeout(timer);
-      window.speechSynthesis.cancel();
-    };
-  }, [currentIndex, currentWordObj, graduatedAnimation]);
+  // 核心修复：移动端语音加载逻辑
+  const speakWord = () => {
+    if (!currentWordObj) return;
+    
+    // 1. 强制停止之前的
+    window.speechSynthesis.cancel();
+
+    // 2. 创建发音请求
+    const utterance = new SpeechSynthesisUtterance(currentWordObj.word);
+    
+    // 3. 优化语音选择 (针对 iOS/Android)
+    // 获取语音列表是一个异步过程，部分安卓机第一次获取可能是空的
+    let voices = window.speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      // 如果列表为空，尝试监听 onvoiceschanged
+      window.speechSynthesis.onvoiceschanged = () => {
+        voices = window.speechSynthesis.getVoices();
+      };
+    }
+
+    // 优先选择高质量的英文语音
+    const preferredVoice = voices.find(v => 
+      v.name.includes('Google US English') ||  // Android 最佳
+      v.name.includes('Samantha') ||           // iOS 最佳
+      (v.lang.includes('en-US') && !v.name.includes('Network')) // 其他本地英文
+    );
+
+    if (preferredVoice) utterance.voice = preferredVoice;
+    
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9; // 稍微慢一点点，更清晰
+    
+    // 4. 播放 (包裹在 try-catch 中防止某些浏览器报错卡死)
+    try {
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.error("Speech synthesis failed", e);
+    }
+  };
+
+  // 修复：移除自动播放，因为微信不支持。改为点击按钮播放。
+  // 仅在电脑端可以保留自动播放，但为了统一体验，这里全部改为手动或点击触发。
 
   const initWord = (wordObj) => {
     const phrase = wordObj.word;
@@ -292,40 +320,6 @@ function GameScreen({ words, mode, onBack, isMistakeMode = false }) {
     setGraduatedAnimation(false);
   };
 
-  const playSuccessSound = () => {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      const ctx = new AudioContext();
-      const now = ctx.currentTime;
-      [523.25, 659.25, 783.99].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0, now + i * 0.05);
-        gain.gain.linearRampToValueAtTime(0.1, now + i * 0.05 + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.5);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + i * 0.05);
-        osc.stop(now + i * 0.05 + 0.6);
-      });
-    } catch (e) { }
-  };
-
-  const playAudio = () => {
-    if (!currentWordObj) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(currentWordObj.word);
-    utterance.lang = 'en-US';
-    utterance.rate = 1.0;
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => v.name.includes('Google') && v.lang.includes('en-US'));
-    if (preferredVoice) utterance.voice = preferredVoice;
-    window.speechSynthesis.speak(utterance);
-  };
-
   const handleLetterClick = (letterObj) => {
     if (isCompleted || letterObj.isUsed) return;
     const firstEmptyIndex = placedLetters.findIndex(l => l === null);
@@ -334,7 +328,7 @@ function GameScreen({ words, mode, onBack, isMistakeMode = false }) {
     const newShuffled = shuffledLetters.map(l => l.id === letterObj.id ? { ...l, isUsed: true } : l);
     const newPlaced = [...placedLetters];
     newPlaced[firstEmptyIndex] = letterObj;
-
+    
     setShuffledLetters(newShuffled);
     setPlacedLetters(newPlaced);
 
@@ -355,19 +349,21 @@ function GameScreen({ words, mode, onBack, isMistakeMode = false }) {
 
   const checkAnswer = (finalPlaced) => {
     const userPhrase = finalPlaced.map(l => l.char).join('');
-
+    
     if (userPhrase === currentWordObj.word) {
       setIsCompleted(true);
-      playSuccessSound();
+      
+      // 拼对时尝试播放一次声音（用户有交互，容易成功）
+      speakWord();
 
       if (isMistakeMode) {
         const result = updateMistakeProgress(currentWordObj.word, true);
         if (result === 'graduated') {
-          setGraduatedAnimation(true);
+           setGraduatedAnimation(true);
         } else {
-          setCurrentHearts(h => h + 1);
-          setShowCelebration(true);
-          setScore(s => s + 10);
+           setCurrentHearts(h => h + 1);
+           setShowCelebration(true);
+           setScore(s => s + 10);
         }
       } else {
         setShowCelebration(true);
@@ -386,12 +382,12 @@ function GameScreen({ words, mode, onBack, isMistakeMode = false }) {
     }
   };
 
+  // 修复：移除 alert，改用状态控制显示完成界面
   const nextLevel = () => {
     if (currentIndex < workingWords.length - 1) {
       setCurrentIndex(c => c + 1);
     } else {
-      alert(`太棒了！本轮挑战完成啦！总分：${score}`);
-      onBack();
+      setShowLevelComplete(true);
     }
   };
 
@@ -400,8 +396,8 @@ function GameScreen({ words, mode, onBack, isMistakeMode = false }) {
     if (!isMistakeMode) {
       addMistake(currentWordObj);
     } else {
-      updateMistakeProgress(currentWordObj.word, false);
-      setCurrentHearts(0);
+       updateMistakeProgress(currentWordObj.word, false);
+       setCurrentHearts(0);
     }
   };
 
@@ -410,88 +406,105 @@ function GameScreen({ words, mode, onBack, isMistakeMode = false }) {
   if (!currentWordObj) return <div className="text-center p-10">暂时没有内容哦</div>;
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50">
-      <div className={`p-4 flex justify-between items-center shadow-md relative z-10 ${isMistakeMode ? 'bg-red-500 text-white' : 'bg-indigo-500 text-white'}`}>
+    // 优化：使用 h-[100dvh] 适配移动端浏览器地址栏动态高度
+    <div className="flex flex-col h-[100dvh] bg-slate-50 overflow-hidden">
+      
+      {/* 顶部栏 - 紧凑设计 */}
+      <div className={`px-3 py-2 flex justify-between items-center shadow-sm relative z-10 shrink-0 ${isMistakeMode ? 'bg-red-500' : 'bg-indigo-500'} text-white`}>
         <div className="flex items-center gap-2">
-          <button onClick={onBack} className="flex items-center gap-1 font-bold hover:bg-white/20 px-3 py-1 rounded-full transition">
-            <ArrowLeft className="w-5 h-5" /> 返回
+          <button onClick={onBack} className="p-1.5 rounded-full hover:bg-white/20 active:scale-95 transition">
+            <ArrowLeft className="w-6 h-6" />
           </button>
-          <span className="text-xs font-semibold px-2 py-1 bg-white/20 rounded-lg border border-white/30">
-            {isMistakeMode ? '📕 单词加油站' : (mode === 'blind' ? '🎧 听音挑战' : '👀 看图练习')}
+          <span className="text-sm font-bold px-2 py-0.5 bg-white/20 rounded-md border border-white/30">
+            {isMistakeMode ? '加油站' : (mode === 'blind' ? '听音' : '看图')}
           </span>
         </div>
+        
         {isMistakeMode ? (
-          <div className="flex items-center gap-1 bg-black/20 px-3 py-1 rounded-full">
-            {[0, 1, 2].map(i => (
-              <Heart key={i} className={`w-5 h-5 ${i < currentHearts ? 'fill-red-300 text-red-300' : 'text-white/30'}`} />
-            ))}
+          <div className="flex gap-0.5 bg-black/20 px-2 py-1 rounded-full">
+             {[0, 1, 2].map(i => (
+               <Heart key={i} className={`w-4 h-4 ${i < currentHearts ? 'fill-red-300 text-red-300' : 'text-white/30'}`} />
+             ))}
           </div>
         ) : (
-          <div className="flex items-center space-x-2 bg-white/20 px-4 py-1 rounded-full">
-            <Trophy className="w-5 h-5 text-yellow-300 fill-yellow-300" />
-            <span className="font-bold text-lg">{score}</span>
+          <div className="flex items-center space-x-1 bg-white/20 px-3 py-1 rounded-full">
+            <Trophy className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+            <span className="font-bold text-base">{score}</span>
           </div>
         )}
       </div>
 
-      <div className="flex-1 flex items-center justify-center p-4">
-        <div className={`bg-white max-w-2xl w-full rounded-3xl shadow-xl border-4 overflow-hidden relative min-h-[500px] flex flex-col
+      {/* 游戏主体区 - Flex 布局自适应 */}
+      <div className="flex-1 flex flex-col items-center justify-between p-2 md:p-4 overflow-y-auto">
+        <div className={`w-full max-w-lg bg-white rounded-2xl shadow-lg border-2 flex flex-col relative flex-1 mb-2
           ${isMistakeMode ? 'border-red-100' : 'border-slate-100'}
         `}>
-          {graduatedAnimation && (
-            <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in-up">
-              <GraduationCap className="w-24 h-24 text-yellow-500 mb-4 animate-bounce" />
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">太棒了！彻底掌握！</h2>
-              <p className="text-gray-500 mb-6">这个词已经从错题本移除咯~</p>
-              <button onClick={nextLevel} className="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-green-600 transition">
-                下一关
+          
+          {/* 关卡完成弹窗 - 替代 alert */}
+          {showLevelComplete && (
+            <div className="absolute inset-0 z-50 bg-white/95 flex flex-col items-center justify-center animate-fade-in-up rounded-2xl p-6 text-center">
+              <Trophy className="w-20 h-20 text-yellow-400 mb-4 drop-shadow-md" />
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">太棒了！</h2>
+              <p className="text-gray-500 mb-6">本轮单词全部完成<br/>总分：{score}</p>
+              <button onClick={onBack} className="bg-indigo-500 text-white px-8 py-3 rounded-full font-bold shadow-lg active:scale-95 transition w-full max-w-xs">
+                返回主页
               </button>
             </div>
           )}
 
-          <div className="p-6 md:p-10 flex flex-col items-center flex-1">
-            <div className="relative mb-6 text-center h-40 flex flex-col justify-center items-center w-full">
+          {/* 毕业动画 */}
+          {graduatedAnimation && (
+            <div className="absolute inset-0 z-50 bg-white/95 flex flex-col items-center justify-center animate-fade-in-up rounded-2xl p-6 text-center">
+              <GraduationCap className="w-20 h-20 text-yellow-500 mb-4 animate-bounce" />
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">彻底掌握！</h2>
+              <p className="text-gray-500 mb-6">已从错题本移除</p>
+              <button onClick={nextLevel} className="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg active:scale-95 transition w-full max-w-xs">
+                下一个
+              </button>
+            </div>
+          )}
+
+          <div className="p-4 flex flex-col items-center flex-1 w-full">
+            
+            {/* 视觉展示区 - 压缩高度 */}
+            <div className="relative w-full flex-1 flex flex-col justify-center items-center min-h-[160px]">
               {shouldShowVisuals ? (
-                <div className="transition-all duration-500 animate-fade-in-up">
-                  <div className={`text-8xl mb-4 transition-transform duration-300 ${isCompleted ? 'scale-110 rotate-6' : ''}`}>
+                <div className="animate-fade-in-up text-center">
+                  <div className={`text-7xl md:text-8xl mb-2 transition-transform duration-300 ${isCompleted ? 'scale-110 rotate-6' : ''}`}>
                     {currentWordObj.emoji}
                   </div>
-                  <h2 className={`text-2xl md:text-3xl font-bold tracking-widest ${getColor(currentIndex)}`}>
+                  <h2 className={`text-2xl font-bold tracking-widest ${getColor(currentIndex)}`}>
                     {currentWordObj.cn}
                   </h2>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center animate-pulse group">
-                  <div
-                    className="w-32 h-32 bg-indigo-100 rounded-3xl flex items-center justify-center border-4 border-indigo-200 mb-2 cursor-pointer hover:bg-indigo-200 transition-colors shadow-inner"
-                    onClick={handleHint}
-                  >
-                    <HelpCircle className="w-16 h-16 text-indigo-400 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <p className="text-sm text-indigo-400 font-medium">听不出来？点我看看</p>
+                <div 
+                  className="flex flex-col items-center justify-center animate-pulse group cursor-pointer p-4 bg-indigo-50 rounded-2xl border-2 border-indigo-100 active:bg-indigo-100 transition" 
+                  onClick={handleHint}
+                >
+                  <HelpCircle className="w-12 h-12 text-indigo-400 mb-2" />
+                  <p className="text-xs text-indigo-400 font-medium">点我偷看提示</p>
                 </div>
               )}
-            </div>
-
-            <div className="flex items-center gap-4 mb-8">
-              <button onClick={playAudio} className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-5 py-2 rounded-full transition-colors font-bold shadow-sm">
-                <Volume2 className="w-5 h-5" /> 听听看
+              
+              {/* 音频按钮 - 居中且显眼 */}
+              <button 
+                onClick={speakWord}
+                className="absolute top-0 right-0 p-3 bg-indigo-50 text-indigo-600 rounded-full shadow-sm border border-indigo-100 active:scale-90 transition z-20"
+              >
+                <Volume2 className="w-6 h-6" />
               </button>
-              {!shouldShowVisuals && (
-                <button onClick={handleHint} className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-600 px-4 py-2 rounded-full transition-colors font-bold shadow-sm">
-                  <Lightbulb className="w-5 h-5" /> 偷看一眼
-                </button>
-              )}
             </div>
 
-            <div className={`flex flex-wrap justify-center gap-2 px-2 min-h-[4rem] ${shake ? 'animate-shake' : ''}`}>
+            {/* 填空槽 - 优化间距 */}
+            <div className={`flex flex-wrap justify-center gap-1.5 md:gap-2 my-4 w-full ${shake ? 'animate-shake' : ''}`}>
               {placedLetters.map((letter, idx) => {
-                if (letter && letter.isSpace) return <div key={`space-${idx}`} className="w-4 md:w-6 h-12 flex-shrink-0"></div>;
+                if (letter && letter.isSpace) return <div key={`space-${idx}`} className="w-2 h-12 flex-shrink-0"></div>;
                 return (
-                  <div
+                  <div 
                     key={idx} onClick={() => handleSlotClick(idx)}
-                    className={`w-12 h-14 md:w-14 md:h-16 flex items-center justify-center text-3xl font-bold rounded-xl border-b-4 transition-all cursor-pointer select-none
-                      ${letter ? `bg-white border-blue-200 shadow-md text-blue-600 active:scale-95` : 'bg-slate-100 border-slate-200'}
+                    className={`w-10 h-12 md:w-12 md:h-14 flex items-center justify-center text-2xl font-bold rounded-xl border-b-4 transition-all cursor-pointer select-none
+                      ${letter ? `bg-white border-blue-200 shadow-sm text-blue-600 active:scale-95` : 'bg-slate-100 border-slate-200'}
                       ${isCompleted && letter ? 'bg-green-100 border-green-400 text-green-600' : ''}
                     `}
                   >
@@ -501,35 +514,35 @@ function GameScreen({ words, mode, onBack, isMistakeMode = false }) {
               })}
             </div>
 
-            {/* 修复：透题问题解决！只有 isCompleted 为 true 时才显示音节提示 */}
-            <div className="h-8 mb-6 mt-2 flex items-center justify-center gap-1">
+            {/* 音节提示 */}
+            <div className="h-6 mb-2 flex items-center justify-center gap-1 w-full">
               {isCompleted && currentWordObj.syllables && currentWordObj.syllables.map((syl, i) => (
-                <React.Fragment key={i}>
-                  <span className="text-sm md:text-base font-medium text-green-500 animate-fade-in-up">
-                    {syl}
-                  </span>
-                  {i < currentWordObj.syllables.length - 1 && <span className="text-green-300 mx-0.5">·</span>}
-                </React.Fragment>
+                <span key={i} className="text-sm font-medium text-green-500 animate-fade-in-up">
+                  {syl}{i < currentWordObj.syllables.length - 1 && <span className="text-green-300 mx-0.5">·</span>}
+                </span>
               ))}
             </div>
 
-            <div className="flex flex-wrap justify-center gap-3 min-h-[4.5rem]">
+            {/* 字母键盘区 - 底部固定高度，防止跳动 */}
+            <div className="w-full mt-auto">
               {!isCompleted ? (
-                shuffledLetters.map((item) => (
-                  <button
-                    key={item.id} onClick={() => handleLetterClick(item)} disabled={item.isUsed}
-                    className={`w-12 h-12 md:w-14 md:h-14 flex items-center justify-center text-2xl font-bold rounded-xl transition-all transform duration-200
-                      ${item.isUsed ? 'opacity-0 scale-50 cursor-default' : 'bg-yellow-400 hover:bg-yellow-300 text-yellow-900 shadow-[0_4px_0_rgb(161,98,7)] active:translate-y-1'}
-                    `}
-                  >
-                    {item.char}
-                  </button>
-                ))
+                <div className="flex flex-wrap justify-center gap-2 min-h-[100px] content-start">
+                  {shuffledLetters.map((item) => (
+                    <button
+                      key={item.id} onClick={() => handleLetterClick(item)} disabled={item.isUsed}
+                      className={`w-11 h-11 md:w-12 md:h-12 flex items-center justify-center text-xl font-bold rounded-lg transition-all duration-100
+                        ${item.isUsed ? 'opacity-0 scale-50 cursor-default' : 'bg-yellow-400 hover:bg-yellow-300 text-yellow-900 shadow-[0_3px_0_rgb(161,98,7)] active:translate-y-1 active:shadow-none'}
+                      `}
+                    >
+                      {item.char}
+                    </button>
+                  ))}
+                </div>
               ) : (
                 !graduatedAnimation && (
-                  <div className="animate-fade-in-up">
-                    <button onClick={nextLevel} className="bg-green-500 hover:bg-green-600 text-white text-xl font-bold py-3 px-10 rounded-full shadow-lg transform transition hover:scale-105 flex items-center gap-2">
-                      下一关 ➡️
+                  <div className="animate-fade-in-up flex justify-center pt-2">
+                     <button onClick={nextLevel} className="bg-green-500 text-white text-lg font-bold py-3 px-12 rounded-full shadow-lg active:scale-95 transition flex items-center gap-2 w-full max-w-xs justify-center">
+                      下一关 <ArrowRight className="w-5 h-5" />
                     </button>
                   </div>
                 )
@@ -543,33 +556,29 @@ function GameScreen({ words, mode, onBack, isMistakeMode = false }) {
         .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
         @keyframes fade-in-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
-        .animate-spin-slow { animation: spin 3s linear infinite; }
       `}</style>
     </div>
   );
 }
 
-// --- 4. 模式选择弹窗 ---
-
+// --- 5. 模式选择弹窗 ---
 function ModeSelectionModal({ unit, onSelectMode, onClose }) {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in-up">
-      <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
-        <div className={`absolute top-0 left-0 w-full h-24 bg-gradient-to-br ${unit.themeColor.split(' ')[0].replace('bg-', 'from-').replace('100', '200')} to-white opacity-50`}></div>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><ArrowLeft className="w-6 h-6" /></button>
-        <div className="relative text-center mb-8 mt-4">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">选择挑战模式</h2>
-          <p className="text-gray-500 text-sm">当前单元: {unit.subtitle}</p>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in-up">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative overflow-hidden">
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 text-gray-400 hover:bg-gray-100 rounded-full"><ArrowLeft className="w-5 h-5" /></button>
+        <div className="text-center mb-6 mt-2">
+          <h2 className="text-xl font-bold text-gray-800">选择挑战模式</h2>
+          <p className="text-gray-500 text-sm">{unit.subtitle}</p>
         </div>
-        <div className="space-y-4">
-          <button onClick={() => onSelectMode('visual')} className="w-full bg-white border-2 border-indigo-100 hover:border-indigo-400 hover:bg-indigo-50 p-4 rounded-2xl flex items-center gap-4 transition-all group shadow-sm hover:shadow-md">
-            <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Eye className="w-6 h-6" /></div>
-            <div className="text-left flex-1"><h3 className="font-bold text-gray-800">👀 看图练习</h3><p className="text-xs text-gray-500">看图片记单词，轻松入门</p></div>
+        <div className="space-y-3">
+          <button onClick={() => onSelectMode('visual')} className="w-full bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-center gap-3 active:scale-98 transition">
+            <div className="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center"><Eye className="w-5 h-5" /></div>
+            <div className="text-left flex-1"><h3 className="font-bold text-gray-800">看图练习</h3><p className="text-xs text-gray-500">简单入门</p></div>
           </button>
-          <button onClick={() => onSelectMode('blind')} className="w-full bg-white border-2 border-rose-100 hover:border-rose-400 hover:bg-rose-50 p-4 rounded-2xl flex items-center gap-4 transition-all group shadow-sm hover:shadow-md">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Ear className="w-6 h-6" /></div>
-            <div className="text-left flex-1"><h3 className="font-bold text-gray-800">👂 听音挑战</h3><p className="text-xs text-gray-500">不看图片，只听声音拼写</p></div>
-            <div className="bg-rose-100 text-rose-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide">进阶</div>
+          <button onClick={() => onSelectMode('blind')} className="w-full bg-rose-50 border border-rose-100 p-4 rounded-xl flex items-center gap-3 active:scale-98 transition">
+            <div className="w-10 h-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center"><Ear className="w-5 h-5" /></div>
+            <div className="text-left flex-1"><h3 className="font-bold text-gray-800">听音挑战</h3><p className="text-xs text-gray-500">进阶复习</p></div>
           </button>
         </div>
       </div>
@@ -577,11 +586,10 @@ function ModeSelectionModal({ unit, onSelectMode, onClose }) {
   );
 }
 
-// --- 5. 主入口 (Dashboard) ---
-
+// --- 6. 主入口 (Dashboard) ---
 export default function App() {
   const [selectedUnit, setSelectedUnit] = useState(null);
-  const [gameMode, setGameMode] = useState(null);
+  const [gameMode, setGameMode] = useState(null); 
   const [mistakeCount, setMistakeCount] = useState(0);
   const [mistakeData, setMistakeData] = useState({});
 
@@ -591,7 +599,7 @@ export default function App() {
       setMistakeCount(Object.keys(db).length);
     };
     checkMistakes();
-    const interval = setInterval(checkMistakes, 1000);
+    const interval = setInterval(checkMistakes, 1000); 
     return () => clearInterval(interval);
   }, []);
 
@@ -603,6 +611,7 @@ export default function App() {
   const startNotebookMode = () => {
     const db = getMistakes();
     if (Object.keys(db).length === 0) {
+      // 移动端友好的提示
       alert("太棒了！你暂时没有错题需要复习哦！");
       return;
     }
@@ -624,97 +633,93 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-sky-50 p-6 font-sans">
+    <div className="min-h-screen bg-sky-50 font-sans pb-8">
       {selectedUnit && !gameMode && (
-        <ModeSelectionModal
-          unit={selectedUnit}
-          onSelectMode={setGameMode}
-          onClose={() => setSelectedUnit(null)}
+        <ModeSelectionModal 
+          unit={selectedUnit} 
+          onSelectMode={setGameMode} 
+          onClose={() => setSelectedUnit(null)} 
         />
       )}
 
-      <header className="max-w-4xl mx-auto mb-8 relative">
+      <header className="max-w-4xl mx-auto mb-6 pt-6 px-4 relative">
         <div className="text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-sky-600 mb-2 flex items-center justify-center gap-3">
-            <BookOpen className="w-10 h-10" />
-            英语单词大冒险
+          <h1 className="text-2xl md:text-3xl font-extrabold text-sky-600 flex items-center justify-center gap-2">
+            <BookOpen className="w-8 h-8" /> 
+            英语大冒险
           </h1>
-          <p className="text-sky-800 text-lg">三年级上册 (Book 3A)</p>
+          <p className="text-sky-800 text-sm mt-1">三年级上册 (Book 3A)</p>
         </div>
-
-        <div className="absolute top-0 right-0 hidden md:block">
-          <button
-            onClick={startNotebookMode}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold shadow-sm transition-all
-               ${mistakeCount > 0 ? 'bg-white text-red-500 hover:shadow-md hover:scale-105' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
+        
+        <div className="hidden md:block absolute top-6 right-4">
+           <button 
+             onClick={startNotebookMode}
+             className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold shadow-sm transition-all
+               ${mistakeCount > 0 ? 'bg-white text-red-500' : 'bg-gray-100 text-gray-400'}
              `}
-          >
-            <BookX className="w-5 h-5" />
-            📕 单词加油站
-            {mistakeCount > 0 && (
-              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{mistakeCount}</span>
-            )}
-          </button>
+           >
+             <BookX className="w-5 h-5" />
+             单词加油站
+             {mistakeCount > 0 && <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{mistakeCount}</span>}
+           </button>
         </div>
       </header>
-
-      <div className="md:hidden mb-6 flex justify-center">
-        <button
-          onClick={startNotebookMode}
-          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold shadow-sm transition-all border-2
+      
+      <div className="md:hidden mb-6 px-4">
+        <button 
+             onClick={startNotebookMode}
+             className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold shadow-sm transition-all border-2 active:scale-98
                ${mistakeCount > 0 ? 'bg-white border-red-100 text-red-500' : 'bg-gray-50 border-gray-100 text-gray-400'}
              `}
-        >
-          <BookX className="w-5 h-5" />
-          复习错题 ({mistakeCount})
+           >
+             <BookX className="w-5 h-5" />
+             复习错题 ({mistakeCount})
         </button>
       </div>
 
-      <main className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <main className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
         {UNIT_DATA.map((unit) => (
-          <div
+          <div 
             key={unit.id}
             onClick={() => handleUnitClick(unit)}
             className={`
-              group cursor-pointer rounded-3xl p-6 shadow-lg border-b-8 transition-all hover:-translate-y-2 hover:shadow-xl relative
-              bg-white ${unit.themeColor.split(' ')[1]}
+              group cursor-pointer rounded-2xl p-5 shadow-sm border-b-4 active:scale-98 transition-all relative bg-white
+              ${unit.themeColor.split(' ')[1]}
             `}
           >
-            <div className="flex items-start justify-between mb-4">
-              {/* 修复：不再用 replace 生成背景色，直接使用存在的 bg-rose-100 搭配 text-rose-600 */}
+            <div className="flex items-center justify-between mb-2">
               <div className={`
-                w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner
+                w-12 h-12 rounded-xl flex items-center justify-center shadow-inner
                 ${unit.themeColor.split(' ')[0]} 
                 ${unit.themeColor.split(' ')[2]}
               `}>
-                {/* 图标颜色由父级的 text-rose-600 控制 */}
-                {React.cloneElement(unit.icon, { className: "w-7 h-7" })}
+                {React.cloneElement(unit.icon, { className: "w-6 h-6" })}
               </div>
-              <span className="text-xs font-bold bg-white/50 text-gray-600 px-2 py-1 rounded-lg">
-                第 {unit.id} 单元
+              <span className="text-xs font-bold bg-white/60 text-gray-600 px-2 py-1 rounded-lg">
+                 第 {unit.id} 单元
               </span>
             </div>
-
-            <h3 className="text-xl font-bold text-gray-800 mb-1 group-hover:text-current transition-colors">
-              {unit.title.split(' ')[2]}
+            
+            <h3 className="text-lg font-bold text-gray-800">
+              {unit.title.split(' ')[2]} 
             </h3>
-            <p className="text-gray-500 text-sm font-medium mb-4">{unit.subtitle}</p>
-
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-black/5">
-              <div className="flex gap-1">
-                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                <span className="text-xs font-bold text-gray-400">准备出发!</span>
+            <p className="text-gray-500 text-xs mb-3">{unit.subtitle}</p>
+            
+            <div className="flex items-center justify-between pt-3 border-t border-black/5">
+              <div className="flex gap-1 items-center">
+                <Star className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+                <span className="text-[10px] font-bold text-gray-400">READY</span>
               </div>
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-300 group-hover:text-current group-hover:bg-gray-50 transition-colors">
-                <ArrowRight className="w-5 h-5" />
+              <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-gray-300">
+                <ArrowRight className="w-4 h-4" />
               </div>
             </div>
           </div>
         ))}
       </main>
 
-      <footer className="max-w-4xl mx-auto mt-12 text-center text-sky-300 text-sm">
-        V5.1 - 专为聪明的小朋友设计
+      <footer className="max-w-4xl mx-auto mt-8 text-center text-sky-300 text-xs pb-4">
+        V6.0 Mobile - For Kids
       </footer>
     </div>
   );
