@@ -3,7 +3,7 @@ import {
   Volume2, Trophy, ArrowRight, Sparkles, Star, Home, ArrowLeft,
   BookOpen, Users, PawPrint, Apple, Palette, Hash, Eye, Ear,
   HelpCircle, Lightbulb, BookX, Heart, GraduationCap,
-  Gamepad2, Save, RotateCcw, Play, Pause, Music, Mic, Edit3,
+  Gamepad2, Save, RotateCcw, Play, Pause, Music, Mic, Edit,
   Settings, Check, X
 } from 'lucide-react';
 
@@ -29,7 +29,6 @@ const shuffleArray = (array) => {
 };
 
 // 律动小剧场数据 (Chants) - Unit 5 专属
-// 新增 cn (中文翻译) 和 phrase (核心词组拼写任务)
 const CHANT_DATA = [
   {
     id: "c1",
@@ -65,13 +64,15 @@ const CHANT_DATA = [
   }
 ];
 
+// 修复：icon 属性现在存储组件引用(Users)，而不是JSX元素(<Users/>)
+// 这能避免在模块加载阶段发生 React 未就绪的错误
 const UNIT_DATA = [
   {
     id: 1,
     title: "Unit 1 身体部位",
     subtitle: "Body Parts",
     themeColor: "bg-rose-100 border-rose-300 text-rose-600",
-    icon: <Users />,
+    icon: Users, 
     words: [
       { word: "name", cn: "名字", emoji: "📛", syllables: ["name"] },
       { word: "nice", cn: "友好的", emoji: "😊", syllables: ["nice"] },
@@ -98,7 +99,7 @@ const UNIT_DATA = [
     title: "Unit 2 家庭关系",
     subtitle: "Family",
     themeColor: "bg-orange-100 border-orange-300 text-orange-600",
-    icon: <Home />,
+    icon: Home,
     words: [
       { word: "mum", cn: "妈妈", emoji: "👩", syllables: ["mum"] },
       { word: "dad", cn: "爸爸", emoji: "👨", syllables: ["dad"] },
@@ -127,7 +128,7 @@ const UNIT_DATA = [
     title: "Unit 3 认识动物",
     subtitle: "Animals",
     themeColor: "bg-green-100 border-green-300 text-green-600",
-    icon: <PawPrint />,
+    icon: PawPrint,
     words: [
       { word: "like", cn: "喜欢", emoji: "❤️", syllables: ["like"] },
       { word: "dog", cn: "狗", emoji: "🐶", syllables: ["dog"] },
@@ -157,7 +158,7 @@ const UNIT_DATA = [
     title: "Unit 4 认识水果",
     subtitle: "Fruits",
     themeColor: "bg-yellow-100 border-yellow-300 text-yellow-700",
-    icon: <Apple />,
+    icon: Apple,
     words: [
       { word: "apple", cn: "苹果", emoji: "🍎", syllables: ["ap", "ple"] },
       { word: "banana", cn: "香蕉", emoji: "🍌", syllables: ["ba", "na", "na"] },
@@ -185,8 +186,8 @@ const UNIT_DATA = [
     title: "Unit 5 颜色与动作",
     subtitle: "Colors & Actions",
     themeColor: "bg-indigo-100 border-indigo-300 text-indigo-600",
-    icon: <Palette />,
-    hasChant: true, // 标记该单元有律动模式
+    icon: Palette,
+    hasChant: true, 
     words: [
       { word: "colour", cn: "颜色", emoji: "🎨", syllables: ["col", "our"] },
       { word: "orange", cn: "橙红色", emoji: "🟧", syllables: ["or", "ange"] },
@@ -222,7 +223,7 @@ const UNIT_DATA = [
     title: "Unit 6 认识数字",
     subtitle: "Numbers",
     themeColor: "bg-sky-100 border-sky-300 text-sky-600",
-    icon: <Hash />,
+    icon: Hash,
     words: [
       { word: "old", cn: "年纪", emoji: "👴", syllables: ["old"] },
       { word: "year", cn: "年", emoji: "📅", syllables: ["year"] },
@@ -323,11 +324,10 @@ const clearBrawlProgress = () => {
   localStorage.removeItem(BRAWL_KEY);
 };
 
-// 设置管理
 const getSettings = () => {
   try {
     const data = localStorage.getItem(SETTINGS_KEY);
-    return data ? JSON.parse(data) : { enableHints: true }; // 默认开启
+    return data ? JSON.parse(data) : { enableHints: true }; 
   } catch (e) { return { enableHints: true }; }
 };
 
@@ -336,19 +336,17 @@ const saveSettings = (settings) => {
 };
 
 
-// --- 3. [新] 律动小剧场 (Sentence Builder + Phrase Spelling) ---
+// --- 3. [新] 律动小剧场 ---
 
 function SentenceGameScreen({ onBack, settings }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [gamePhase, setGamePhase] = useState('sentence'); 
   
-  // --- Sentence Builder State ---
   const [placedWords, setPlacedWords] = useState([]);
   const [availableWords, setAvailableWords] = useState([]);
   const [sentenceStructure, setSentenceStructure] = useState([]);
   const [isSentenceCompleted, setIsSentenceCompleted] = useState(false);
   
-  // --- Spelling State ---
   const [spellingShuffledLetters, setSpellingShuffledLetters] = useState([]);
   const [spellingPlacedLetters, setSpellingPlacedLetters] = useState([]);
   const [isSpellingCompleted, setIsSpellingCompleted] = useState(false);
@@ -367,7 +365,6 @@ function SentenceGameScreen({ onBack, settings }) {
     const chant = CHANT_DATA[idx];
     setGamePhase('sentence');
     
-    // 1. 初始化组句逻辑
     const tokens = chant.sentence.split(/([a-zA-Z]+)/).filter(t => t);
     const structure = [];
     const wordsPool = [];
@@ -390,7 +387,6 @@ function SentenceGameScreen({ onBack, settings }) {
     setAvailableWords(shuffleArray(wordsPool));
     setIsSentenceCompleted(false);
     
-    // 2. 初始化拼写逻辑
     const phrase = chant.phrase.word;
     const lettersOnly = phrase.replace(/\s/g, '').split(''); 
     
@@ -415,32 +411,59 @@ function SentenceGameScreen({ onBack, settings }) {
   };
 
   const playAudio = (text) => {
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US';
-    u.rate = 0.9;
-    u.pitch = 1.1;
-    u.onstart = () => setIsPlayingAudio(true);
-    u.onend = () => setIsPlayingAudio(false);
-    window.speechSynthesis.speak(u);
+    try {
+      if (!window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'en-US';
+      u.rate = 0.9;
+      u.pitch = 1.1;
+      u.onstart = () => setIsPlayingAudio(true);
+      u.onend = () => setIsPlayingAudio(false);
+      u.onerror = (e) => {
+        console.error("TTS error:", e);
+        setIsPlayingAudio(false);
+      };
+      window.speechSynthesis.speak(u);
+    } catch (e) {
+      console.error("Speech synthesis failed", e);
+    }
   };
 
   const playSuccessSound = () => {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(440, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.1, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.5);
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContext) return;
+      
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+      
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+
+      // 安全的资源回收
+      setTimeout(() => {
+        try {
+            if(ctx.state !== 'closed') ctx.close();
+        } catch(e) {}
+      }, 600);
+    } catch (e) {
+      console.error("Audio error", e);
+    }
   };
 
-  // --- Sentence Builder Logic ---
+  // --- Logic ---
 
   const handleSentenceWordClick = (wordObj) => {
     if (isSentenceCompleted || wordObj.isUsed) return;
@@ -485,8 +508,6 @@ function SentenceGameScreen({ onBack, settings }) {
     }
   };
 
-  // --- Spelling Logic ---
-  
   const handleSpellingLetterClick = (letterObj) => {
     if (isSpellingCompleted || letterObj.isUsed) return;
     const firstEmptyIndex = spellingPlacedLetters.findIndex(l => l === null);
@@ -534,7 +555,6 @@ function SentenceGameScreen({ onBack, settings }) {
     }
   };
 
-  // 提示功能
   const handleSpellingHint = () => {
     if (isSpellingCompleted) return;
     const emptyIndex = spellingPlacedLetters.findIndex(l => l === null);
@@ -543,13 +563,9 @@ function SentenceGameScreen({ onBack, settings }) {
     const letterToAutoFill = spellingShuffledLetters.find(l => l.char === correctChar && !l.isUsed);
     if (letterToAutoFill) {
       handleSpellingLetterClick(letterToAutoFill);
-    } else {
-        console.warn("Hint: No matching letter found in pool.");
     }
   };
 
-  // --- Navigation ---
-  
   const startSpellingPhase = () => {
     setGamePhase('spelling');
     playAudio(currentChant.phrase.word);
@@ -564,7 +580,6 @@ function SentenceGameScreen({ onBack, settings }) {
     }
   };
 
-  // Render Helpers
   let wordSlotCounter = 0;
 
   return (
@@ -581,7 +596,6 @@ function SentenceGameScreen({ onBack, settings }) {
       <div className="flex-1 flex flex-col items-center justify-center p-4 pb-20">
         <div className="w-full max-w-3xl bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-4 md:p-8 min-h-[400px] flex flex-col items-center justify-center relative overflow-hidden transition-all">
           
-          {/* Phase 1: Sentence Builder */}
           {gamePhase === 'sentence' && (
             <div className="w-full flex flex-col items-center animate-fade-in-up">
                <div className="mb-6 md:mb-10 text-center">
@@ -638,7 +652,7 @@ function SentenceGameScreen({ onBack, settings }) {
                     <div className="flex flex-col items-center animate-bounce">
                         <p className="text-green-600 font-bold mb-2 text-sm md:text-base">句子组装完成！下一步 ⬇️</p>
                         <button onClick={startSpellingPhase} className="bg-indigo-500 hover:bg-indigo-600 text-white text-lg md:text-xl font-bold py-3 px-8 md:px-12 rounded-full shadow-lg flex items-center gap-2 active:scale-95">
-                             <Edit3 className="w-5 h-5 md:w-6 md:h-6" /> 拼写核心词组
+                             <Edit className="w-5 h-5 md:w-6 md:h-6" /> 拼写核心词组
                         </button>
                     </div>
                  )}
@@ -646,7 +660,6 @@ function SentenceGameScreen({ onBack, settings }) {
             </div>
           )}
 
-          {/* Phase 2: Phrase Spelling */}
           {gamePhase === 'spelling' && (
              <div className="w-full flex flex-col items-center animate-fade-in-up">
                 <div className="mb-6 md:mb-8 text-center">
@@ -817,34 +830,49 @@ function GameScreen({
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
+      
       const ctx = new AudioContext();
-      const now = ctx.currentTime;
-      [523.25, 659.25, 783.99].forEach((freq, i) => {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0, now + i * 0.05);
-        gain.gain.linearRampToValueAtTime(0.1, now + i * 0.05 + 0.05);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.05 + 0.5);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now + i * 0.05);
-        osc.stop(now + i * 0.05 + 0.6);
-      });
-    } catch (e) { }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
+      
+      gain.gain.setValueAtTime(0.1, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+
+      setTimeout(() => {
+        try {
+            if(ctx.state !== 'closed') ctx.close();
+        } catch(e) {}
+      }, 600);
+    } catch (e) {
+      console.error("Audio error", e);
+    }
   };
 
   const playAudio = () => {
-    if (!currentWordObj) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(currentWordObj.word);
-    utterance.lang = 'en-US';
-    utterance.rate = 1.0;
-    const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(v => v.name.includes('Google') && v.lang.includes('en-US'));
-    if (preferredVoice) utterance.voice = preferredVoice;
-    window.speechSynthesis.speak(utterance);
+    try {
+      if (!currentWordObj || !window.speechSynthesis) return;
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(currentWordObj.word);
+      utterance.lang = 'en-US';
+      utterance.rate = 1.0;
+      const voices = window.speechSynthesis.getVoices();
+      const preferredVoice = voices.find(v => v.name.includes('Google') && v.lang.includes('en-US'));
+      if (preferredVoice) utterance.voice = preferredVoice;
+      utterance.onerror = (e) => console.error("TTS Error", e);
+      window.speechSynthesis.speak(utterance);
+    } catch (e) {
+      console.error("Speech synthesis failed", e);
+    }
   };
 
   const handleLetterClick = (letterObj) => {
@@ -872,8 +900,6 @@ function GameScreen({
     const letterToAutoFill = shuffledLetters.find(l => l.char === correctChar && !l.isUsed);
     if (letterToAutoFill) {
       handleLetterClick(letterToAutoFill);
-    } else {
-        console.warn("Hint: No matching letter found in pool.");
     }
   };
 
@@ -950,6 +976,9 @@ function GameScreen({
   const shouldShowVisuals = effectiveMode === 'visual' || effectiveMode === 'notebook' || showHint || isCompleted;
 
   if (!currentWordObj) return <div className="text-center p-10">加载中...</div>;
+
+  // 修复：使用 React.createElement 动态渲染图标，避免加载时的JSX错误
+  const IconComponent = currentWordObj.icon || HelpCircle; // 默认图标
 
   return (
     <div className="flex flex-col min-h-[100dvh] w-full overflow-x-hidden overscroll-none select-none bg-slate-50">
@@ -1435,7 +1464,8 @@ export default function App() {
                 ${unit.themeColor.split(' ')[0]} 
                 ${unit.themeColor.split(' ')[2]}
               `}>
-                {React.cloneElement(unit.icon, { className: "w-7 h-7" })}
+                {/* 修复：这里直接把组件作为React元素渲染，而不是cloneElement */}
+                <unit.icon className="w-7 h-7" />
               </div>
               <span className="text-xs font-bold bg-white/50 text-gray-600 px-2 py-1 rounded-lg">
                 第 {unit.id} 单元
@@ -1461,7 +1491,7 @@ export default function App() {
       </main>
 
       <footer className="max-w-4xl mx-auto mt-12 text-center text-sky-300 text-sm">
-        V6.4 - 专为聪明的小朋友设计
+        V6.5 - 专为聪明的小朋友设计
       </footer>
     </div>
   );
