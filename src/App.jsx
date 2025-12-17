@@ -184,7 +184,7 @@ const playWordAudio = async (word) => {
   } catch (e) { }
 
   // 2. TTS 降级
-  if ('speechSynthesis' in window) {
+  if ('speechSynthesis' in window && window.speechSynthesis) {
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(word);
     utterance.lang = 'en-US';
@@ -772,7 +772,7 @@ function GameScreen({
         audioPlayedRef.current = true;
       }
     }, 500);
-    return () => { clearTimeout(timer); window.speechSynthesis.cancel(); };
+    return () => { clearTimeout(timer); if (window.speechSynthesis) window.speechSynthesis.cancel(); };
   }, [currentIndex, currentWordObj, graduatedAnimation, mode]);
 
   const initWord = (wordObj) => {
