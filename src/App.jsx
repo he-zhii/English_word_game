@@ -1,14 +1,27 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
-  Volume2, Trophy, ArrowRight, Sparkles, Star, Home, ArrowLeft,
+  Volume2, Trophy, ArrowRight, Star, Home, ArrowLeft,
   BookOpen, Users, PawPrint, Apple, Palette, Hash, Eye, Ear,
   HelpCircle, Lightbulb, BookX, Heart, GraduationCap,
-  Gamepad2, Save, RotateCcw, Play, Pause, Music, Mic, Edit,
-  Settings, Check, X, Plus, Trash2, CheckSquare, Square, RefreshCw
+  Gamepad2, Save, Play, Music, Edit,
+  Settings, X, Plus, Trash2, CheckSquare, Square, RefreshCw,
+  PenTool, Keyboard, Lock, Award, Zap, Sunrise, Moon, MousePointer, Sparkles,
+  Coffee, Crown, Medal, ThumbsUp, Smile
 } from 'lucide-react';
 
-// --- 1. 数据准备区 ---
+// --- 1. 全局配置与工具 ---
 
+const STORAGE_VERSION = 'v8.6'; // 升级版本号
+const KEYS = {
+  WORDS: `spelling_words_${STORAGE_VERSION}`,
+  MISTAKES: `spelling_mistakes_${STORAGE_VERSION}`,
+  BRAWL: `spelling_brawl_${STORAGE_VERSION}`,
+  STATS: `spelling_stats_${STORAGE_VERSION}`,
+  ACHIEVEMENTS: `spelling_achievements_${STORAGE_VERSION}`,
+  SETTINGS: `spelling_settings_${STORAGE_VERSION}`
+};
+
+// 颜色生成器
 const getColor = (index) => {
   const colors = [
     "text-pink-500", "text-blue-500", "text-green-500",
@@ -28,60 +41,127 @@ const shuffleArray = (array) => {
   return newArr;
 };
 
-// 随机 Emoji 库 (用于新单词)
+// 随机 Emoji
 const RANDOM_EMOJIS = ["🌟", "🎈", "🐶", "🐱", "🍦", "🌈", "🚀", "⚽", "🎮", "🎸", "📚", "✏️", "🍎", "🍔", "🚲", "⏰", "💡", "🎁", "🔑", "💎"];
-
 const getRandomEmoji = () => RANDOM_EMOJIS[Math.floor(Math.random() * RANDOM_EMOJIS.length)];
 
-// 律动小剧场数据 (Chants) - Unit 5 专属
+// --- 2. 核心功能引擎 ---
+
+// 爆炸音效生成器
+const playExplosionSound = () => {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    
+    // 模拟爆炸/烟花的声音：低频锯齿波快速衰减
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+    
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
+    
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 1.5);
+  } catch (e) {}
+};
+
+// 混合声音引擎 (强制美音)
+const playWordAudio = async (word) => {
+    if (!word) return;
+    const cleanWord = word.toLowerCase().trim().replace(/[^a-z]/g, '');
+    
+    // 1. 尝试 API (优先找 US 音源)
+    try {
+        const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanWord}`);
+        if (response.ok) {
+            const data = await response.json();
+            // 优先过滤出 -us.mp3 结尾的音频
+            let audioUrl = data[0]?.phonetics?.find(p => p.audio && p.audio.includes('-us.mp3'))?.audio;
+            // 如果没有 US 特定的，就拿第一个可用的
+            if (!audioUrl) {
+                audioUrl = data[0]?.phonetics?.find(p => p.audio && p.audio !== '')?.audio;
+            }
+            
+            if (audioUrl) {
+                const audio = new Audio(audioUrl);
+                audio.play();
+                return;
+            }
+        }
+    } catch (e) {}
+
+    // 2. TTS 降级 (强制 en-US)
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(word);
+        utterance.lang = 'en-US'; 
+        utterance.rate = 0.9;
+        
+        const voices = window.speechSynthesis.getVoices();
+        // 严格筛选美音
+        const usVoice = voices.find(v => v.lang === 'en-US' && !v.name.includes('UK') && !v.name.includes('GB'));
+        if (usVoice) utterance.voice = usVoice;
+        
+        window.speechSynthesis.speak(utterance);
+    }
+};
+
+// --- 3. 数据定义 ---
+
+// 18个成就设计
+const ACHIEVEMENTS_DATA = [
+  // 🌱 起步阶段
+  { id: 'first_steps', title: '初出茅庐', desc: '累计拼对 5 个单词', icon: '🌱', type: 'milestone', condition: (s) => s.totalWords >= 5 },
+  { id: 'getting_started', title: '渐入佳境', desc: '累计拼对 25 个单词', icon: '🚲', type: 'milestone', condition: (s) => s.totalWords >= 25 },
+  { id: 'half_hundred', title: '半途而不废', desc: '累计拼对 50 个单词', icon: '🏃', type: 'milestone', condition: (s) => s.totalWords >= 50 },
+  
+  // 🏆 进阶里程碑
+  { id: 'vocabulary_king', title: '百词斩', desc: '累计拼对 100 个单词', icon: '⚔️', type: 'milestone', condition: (s) => s.totalWords >= 100 },
+  { id: 'word_master', title: '登峰造极', desc: '累计拼对 300 个单词', icon: '👑', type: 'milestone', condition: (s) => s.totalWords >= 300 },
+  { id: 'score_tycoon', title: '积分大亨', desc: '总积分达到 1000 分', icon: '💰', type: 'milestone', condition: (s) => s.totalScore >= 1000 },
+
+  // 🔥 连胜挑战
+  { id: 'streak_5', title: '连对先锋', desc: '连续答对 5 次不失误', icon: '🔥', type: 'streak', condition: (s) => s.currentStreak >= 5 },
+  { id: 'streak_20', title: '心流模式', desc: '连续答对 20 次不失误', icon: '🌊', type: 'streak', condition: (s) => s.currentStreak >= 20 },
+  { id: 'streak_50', title: '独孤求败', desc: '连续答对 50 次不失误', icon: '🐉', type: 'streak', condition: (s) => s.currentStreak >= 50 },
+
+  // 🤡 趣味与坚持
+  { id: 'shake_master', title: '手滑大王', desc: '累计拼错 20 次', icon: '🌀', type: 'funny', condition: (s) => s.totalMistakes >= 20 },
+  { id: 'never_give_up', title: '不屈的灵魂', desc: '累计拼错 100 次', icon: '❤️‍🩹', type: 'funny', condition: (s) => s.totalMistakes >= 100 },
+  { id: 'curious_baby', title: '点读机', desc: '累计使用提示 20 次', icon: '💡', type: 'funny', condition: (s) => s.totalHints >= 20 },
+  { id: 'encyclopedia', title: '百科全书', desc: '累计使用提示 100 次', icon: '📖', type: 'funny', condition: (s) => s.totalHints >= 100 },
+
+  // 🥚 时间与隐藏彩蛋 (UI上隐藏条件)
+  { id: 'early_bird', title: '早起的鸟儿', desc: '在 6:00-8:00 间学习', icon: '🌅', type: 'hidden', condition: () => { const h = new Date().getHours(); return h >= 6 && h < 8; } },
+  { id: 'afternoon_tea', title: '勤奋的午后', desc: '在 13:00-15:00 间学习', icon: '☕', type: 'hidden', condition: () => { const h = new Date().getHours(); return h >= 13 && h < 15; } },
+  { id: 'night_owl', title: '夜深人静', desc: '在 22:00 之后学习', icon: '🦉', type: 'hidden', condition: () => { const h = new Date().getHours(); return h >= 22; } },
+  { id: 'clicker_madness', title: '狂点狂魔', desc: '点击游戏标题 10 次', icon: '👆', type: 'hidden', condition: (s) => s.titleClicks >= 10 },
+  { id: 'lucky_star', title: '幸运之星', desc: '累计答对 88 个单词', icon: '🍀', type: 'hidden', condition: (s) => s.totalWords === 88 },
+];
+
 const CHANT_DATA = [
-  {
-    id: "c1",
-    sentence: "Black, black, sit down.",
-    cn: "黑色，黑色，坐下。",
-    emoji: "⚫🪑",
-    color: "bg-slate-800 text-white",
-    phrase: { word: "sit down", cn: "坐下" }
-  },
-  {
-    id: "c2",
-    sentence: "White, white, turn around.",
-    cn: "白色，白色，转个圈。",
-    emoji: "⚪🔄",
-    color: "bg-slate-100 text-slate-800 border-2 border-slate-200",
-    phrase: { word: "turn around", cn: "转圈" }
-  },
-  {
-    id: "c3",
-    sentence: "Pink and red, touch the ground.",
-    cn: "粉色和红色，摸摸地面。",
-    emoji: "💗🔴👇",
-    color: "bg-pink-100 text-pink-600",
-    phrase: { word: "touch the ground", cn: "摸地面" }
-  },
-  {
-    id: "c4",
-    sentence: "Orange and red, jump up and down.",
-    cn: "橙色和红色，跳上跳下。",
-    emoji: "🟧🔴🦘",
-    color: "bg-orange-100 text-orange-600",
-    phrase: { word: "jump up and down", cn: "跳上跳下" }
-  }
+  { id: "c1", sentence: "Black, black, sit down.", cn: "黑色，黑色，坐下。", emoji: "⚫🪑", color: "bg-slate-800 text-white", phrase: { word: "sit down", cn: "坐下" } },
+  { id: "c2", sentence: "White, white, turn around.", cn: "白色，白色，转个圈。", emoji: "⚪🔄", color: "bg-slate-100 text-slate-800 border-2 border-slate-200", phrase: { word: "turn around", cn: "转圈" } },
+  { id: "c3", sentence: "Pink and red, touch the ground.", cn: "粉色和红色，摸摸地面。", emoji: "💗🔴👇", color: "bg-pink-100 text-pink-600", phrase: { word: "touch the ground", cn: "摸地面" } },
+  { id: "c4", sentence: "Orange and red, jump up and down.", cn: "橙色和红色，跳上跳下。", emoji: "🟧🔴🦘", color: "bg-orange-100 text-orange-600", phrase: { word: "jump up and down", cn: "跳上跳下" } }
 ];
 
-// --- 静态单元元数据 (不包含单词列表，单词列表移至 State) ---
-// 注意：Icon 组件不能存入 LocalStorage，所以我们把静态配置和动态数据分开
+// 标题全中文优化
 const UNIT_METADATA = [
-  { id: 1, title: "Unit 1 身体部位", subtitle: "Body Parts", themeColor: "bg-rose-100 border-rose-300 text-rose-600", icon: Users },
-  { id: 2, title: "Unit 2 家庭关系", subtitle: "Family", themeColor: "bg-orange-100 border-orange-300 text-orange-600", icon: Home },
-  { id: 3, title: "Unit 3 认识动物", subtitle: "Animals", themeColor: "bg-green-100 border-green-300 text-green-600", icon: PawPrint },
-  { id: 4, title: "Unit 4 认识水果", subtitle: "Fruits", themeColor: "bg-yellow-100 border-yellow-300 text-yellow-700", icon: Apple },
-  { id: 5, title: "Unit 5 颜色与动作", subtitle: "Colors & Actions", themeColor: "bg-indigo-100 border-indigo-300 text-indigo-600", icon: Palette, hasChant: true },
-  { id: 6, title: "Unit 6 认识数字", subtitle: "Numbers", themeColor: "bg-sky-100 border-sky-300 text-sky-600", icon: Hash }
+  { id: 1, title: "身体部位", subtitle: "Body Parts", themeColor: "bg-rose-100 border-rose-300 text-rose-600", icon: Users },
+  { id: 2, title: "家庭关系", subtitle: "Family", themeColor: "bg-orange-100 border-orange-300 text-orange-600", icon: Home },
+  { id: 3, title: "认识动物", subtitle: "Animals", themeColor: "bg-green-100 border-green-300 text-green-600", icon: PawPrint },
+  { id: 4, title: "认识水果", subtitle: "Fruits", themeColor: "bg-yellow-100 border-yellow-300 text-yellow-700", icon: Apple },
+  { id: 5, title: "颜色与动作", subtitle: "Colors & Actions", themeColor: "bg-indigo-100 border-indigo-300 text-indigo-600", icon: Palette, hasChant: true },
+  { id: 6, title: "数字与拼读", subtitle: "Numbers & Phonics", themeColor: "bg-sky-100 border-sky-300 text-sky-600", icon: Hash }
 ];
 
-// --- 初始单词数据 (Default Data) ---
-// 包含了你要求的 Unit 5 新增单词
 const DEFAULT_WORDS_DATA = {
   1: [
       { word: "name", cn: "名字", emoji: "📛", syllables: ["name"] },
@@ -197,7 +277,6 @@ const DEFAULT_WORDS_DATA = {
       { word: "up", cn: "上", emoji: "⬆️", syllables: ["up"] },
       { word: "stand", cn: "站", emoji: "🧍", syllables: ["stand"] },
       { word: "run", cn: "跑", emoji: "🏃", syllables: ["run"] },
-      // 新增单词
       { word: "number", cn: "数字", emoji: "🔢", syllables: ["num", "ber"] },
       { word: "boys", cn: "男孩们", emoji: "👦", syllables: ["boys"] },
   ],
@@ -217,71 +296,57 @@ const DEFAULT_WORDS_DATA = {
       { word: "cut", cn: "切", emoji: "✂️", syllables: ["cut"] },
       { word: "eat", cn: "吃", emoji: "🍽️", syllables: ["eat"] },
       { word: "cake", cn: "蛋糕", emoji: "🎂", syllables: ["cake"] },
+      { word: "van", cn: "救护车", emoji: "🚑", syllables: ["van"] }, 
+      { word: "vet", cn: "兽医", emoji: "🩺", syllables: ["vet"] },
+      { word: "win", cn: "赢", emoji: "🏆", syllables: ["win"] },
+      { word: "box", cn: "盒子", emoji: "📦", syllables: ["box"] },
+      { word: "we", cn: "我们", emoji: "🧑‍🤝‍🧑", syllables: ["we"] },
+      { word: "yo-yo", cn: "悠悠球", emoji: "🪀", syllables: ["yo", "yo"] },
+      { word: "Zip", cn: "次波(松鼠)", emoji: "🐿️", syllables: ["Zip"] },
+      { word: "quiz", cn: "知识竞赛", emoji: "🙋", syllables: ["quiz"] },
   ]
 };
 
-// --- 2. 存储管理 ---
+// --- 4. 存储与管理 ---
 
 const MISTAKE_KEY = 'spellingGame_mistakes_v4';
 const BRAWL_KEY = 'spellingGame_brawl_progress_v1';
 const SCORE_KEY = 'spellingGame_totalScore_v1';
 const SETTINGS_KEY = 'spellingGame_settings_v1';
-const WORDS_DATA_KEY = 'spellingGame_words_data_v2'; // 更新版本号
+const WORDS_DATA_KEY = 'spellingGame_words_data_v4'; 
 
-// 获取单词数据（优先本地，否则默认）
 const getStoredWordsData = () => {
   try {
     const data = localStorage.getItem(WORDS_DATA_KEY);
-    if (data) {
-      return JSON.parse(data);
-    }
+    if (data) return JSON.parse(data);
   } catch (e) {
     console.error("Error loading words data:", e);
   }
-  // 如果是第一次加载，或者出错，返回默认数据
-  // 我们这里做一个数据结构的标准化，确保每个单词都有 isActive 属性
   const normalizedDefault = {};
   Object.keys(DEFAULT_WORDS_DATA).forEach(unitId => {
     normalizedDefault[unitId] = DEFAULT_WORDS_DATA[unitId].map(w => ({
       ...w,
-      isActive: w.isActive !== false // 默认为 true
+      isActive: w.isActive !== false
     }));
   });
   return normalizedDefault;
 };
 
-const saveWordsData = (data) => {
-  localStorage.setItem(WORDS_DATA_KEY, JSON.stringify(data));
-};
+const saveWordsData = (data) => localStorage.setItem(WORDS_DATA_KEY, JSON.stringify(data));
 
 const getGlobalScore = () => {
-  try {
-    const score = localStorage.getItem(SCORE_KEY);
-    return score ? parseInt(score, 10) : 0;
-  } catch (e) { return 0; }
+  try { return parseInt(localStorage.getItem(SCORE_KEY) || '0', 10); } catch (e) { return 0; }
 };
-
-const saveGlobalScore = (score) => {
-  localStorage.setItem(SCORE_KEY, score.toString());
-};
-
 const updateGlobalScore = (delta) => {
-  const current = getGlobalScore();
-  const newScore = current + delta;
-  saveGlobalScore(newScore);
+  const newScore = getGlobalScore() + delta;
+  localStorage.setItem(SCORE_KEY, newScore.toString());
   return newScore;
 };
 
 const getMistakes = () => {
-  try {
-    const data = localStorage.getItem(MISTAKE_KEY);
-    return data ? JSON.parse(data) : {};
-  } catch (e) { return {}; }
+  try { return JSON.parse(localStorage.getItem(MISTAKE_KEY) || '{}'); } catch (e) { return {}; }
 };
-
-const saveMistakes = (mistakes) => {
-  localStorage.setItem(MISTAKE_KEY, JSON.stringify(mistakes));
-};
+const saveMistakes = (data) => localStorage.setItem(MISTAKE_KEY, JSON.stringify(data));
 
 const addMistake = (wordObj) => {
   const db = getMistakes();
@@ -294,17 +359,15 @@ const addMistake = (wordObj) => {
 const updateMistakeProgress = (wordStr, isCorrect) => {
   const db = getMistakes();
   if (!db[wordStr]) return null;
-
   if (isCorrect) {
     db[wordStr].hearts = (db[wordStr].hearts || 0) + 1;
     if (db[wordStr].hearts >= 3) {
       delete db[wordStr];
       saveMistakes(db);
       return 'graduated';
-    } else {
-      saveMistakes(db);
-      return 'improved';
     }
+    saveMistakes(db);
+    return 'improved';
   } else {
     db[wordStr].hearts = 0;
     saveMistakes(db);
@@ -313,196 +376,209 @@ const updateMistakeProgress = (wordStr, isCorrect) => {
 };
 
 const getBrawlProgress = () => {
-  try {
-    const data = localStorage.getItem(BRAWL_KEY);
-    return data ? JSON.parse(data) : null;
-  } catch (e) { return null; }
+  try { return JSON.parse(localStorage.getItem(BRAWL_KEY)); } catch (e) { return null; }
 };
-
-const saveBrawlProgress = (state) => {
-  localStorage.setItem(BRAWL_KEY, JSON.stringify(state));
-};
-
-const clearBrawlProgress = () => {
-  localStorage.removeItem(BRAWL_KEY);
-};
+const saveBrawlProgress = (state) => localStorage.setItem(BRAWL_KEY, JSON.stringify(state));
+const clearBrawlProgress = () => localStorage.removeItem(BRAWL_KEY);
 
 const getSettings = () => {
-  try {
-    const data = localStorage.getItem(SETTINGS_KEY);
-    return data ? JSON.parse(data) : { enableHints: true }; 
-  } catch (e) { return { enableHints: true }; }
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY)) || { enableHints: true }; } catch (e) { return { enableHints: true }; }
 };
+const saveSettings = (s) => localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
 
-const saveSettings = (settings) => {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-};
+// --- 5. 组件: 游戏内弹窗 (Toast) ---
+function ToastNotification({ message, isVisible, onClose }) {
+  useEffect(() => {
+    if (isVisible) {
+      const timer = setTimeout(onClose, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, onClose]);
 
+  if (!isVisible) return null;
 
-// --- 3. [新] 律动小剧场 ---
+  return (
+    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-[100] animate-fade-in-up">
+       <div className="bg-slate-800/90 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 backdrop-blur-md border border-white/20">
+          <div className="bg-yellow-400 rounded-full p-1 animate-spin-slow">
+             <Trophy className="w-5 h-5 text-yellow-900" />
+          </div>
+          <span className="font-bold">{message}</span>
+       </div>
+    </div>
+  );
+}
 
-function SentenceGameScreen({ onBack, settings }) {
+// --- 6. 组件: 奖杯墙 (Trophy Wall) [烟花版] ---
+function TrophyWallModal({ isOpen, onClose, unlockedIds }) {
+  const [particles, setParticles] = useState([]);
+
+  const createParticles = (x, y) => {
+    const newParticles = [];
+    // 增加粒子数量到 40 个，让烟花更盛大
+    for (let i = 0; i < 40; i++) {
+        newParticles.push({
+            id: Math.random(),
+            x, y,
+            angle: Math.random() * 360,
+            // 增加速度范围，让爆炸范围更大
+            speed: Math.random() * 10 + 3,
+            color: ['#FBBF24', '#F472B6', '#60A5FA', '#34D399', '#A78BFA', '#F87171'][Math.floor(Math.random() * 6)],
+            life: 1,
+            decay: Math.random() * 0.02 + 0.01 // 随机衰减，更有层次感
+        });
+    }
+    setParticles(prev => [...prev, ...newParticles]);
+    playExplosionSound(); // 触发音效
+  };
+
+  useEffect(() => {
+    if (particles.length > 0) {
+        const timer = requestAnimationFrame(() => {
+            setParticles(prev => prev.map(p => ({
+                ...p, 
+                x: p.x + Math.cos(p.angle * Math.PI / 180) * p.speed, 
+                y: p.y + Math.sin(p.angle * Math.PI / 180) * p.speed + 1, // 增加一点重力下坠
+                life: p.life - p.decay 
+            })).filter(p => p.life > 0));
+        });
+        return () => cancelAnimationFrame(timer);
+    }
+  }, [particles]);
+
+  const handleTrophyClick = (e, isUnlocked) => {
+      if (isUnlocked) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          createParticles(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[90] flex items-center justify-center p-4 animate-fade-in-up">
+      {/* 粒子层 (Canvas or DOM) */}
+      {particles.map(p => (
+          <div key={p.id} className="fixed w-2 h-2 rounded-full pointer-events-none z-[100]" 
+               style={{ 
+                   left: p.x, top: p.y, 
+                   backgroundColor: p.color, 
+                   opacity: p.life, 
+                   transform: `scale(${p.life * 2})` // 粒子随生命周期缩小
+               }} />
+      ))}
+
+      <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-3xl w-full max-w-2xl shadow-2xl border border-slate-700 flex flex-col max-h-[85vh] overflow-hidden">
+         <div className="bg-slate-900/50 p-6 flex justify-between items-center border-b border-slate-700">
+            <div>
+               <h2 className="text-2xl font-bold text-yellow-400 flex items-center gap-2"><Award className="w-7 h-7" /> 荣誉陈列室</h2>
+               <p className="text-slate-400 text-xs mt-1 tracking-wider uppercase">收集进度: {unlockedIds.length} / {ACHIEVEMENTS_DATA.length}</p>
+            </div>
+            <button onClick={onClose} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-full transition text-white"><X className="w-5 h-5"/></button>
+         </div>
+         
+         <div className="flex-1 overflow-y-auto p-6 grid grid-cols-2 md:grid-cols-3 gap-4 bg-slate-900">
+            {ACHIEVEMENTS_DATA.map((item) => {
+               const isUnlocked = unlockedIds.includes(item.id);
+               const isSecret = item.type === 'hidden' && !isUnlocked;
+               
+               return (
+                  <div 
+                    key={item.id} 
+                    onClick={(e) => handleTrophyClick(e, isUnlocked)}
+                    className={`
+                        relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-300
+                        ${isUnlocked 
+                            ? 'bg-slate-800/80 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)] hover:border-yellow-400 hover:scale-105 cursor-pointer' 
+                            : 'bg-slate-800/30 border-slate-800 grayscale opacity-50'
+                        }
+                    `}
+                  >
+                     {/* 自动浮动动画 */}
+                     <div className={`text-4xl mb-3 transition-transform ${isUnlocked ? 'animate-float' : ''}`}>
+                        {isSecret ? '🔒' : item.icon}
+                     </div>
+                     <h3 className={`font-bold text-center text-sm ${isUnlocked ? 'text-yellow-100' : 'text-slate-600'}`}>
+                        {isSecret ? '？？？' : item.title}
+                     </h3>
+                     {!isSecret && <p className="text-[10px] text-slate-400 text-center mt-1">{item.desc}</p>}
+                     {isUnlocked && <Sparkles className="absolute top-2 right-2 w-3 h-3 text-yellow-400 animate-pulse" />}
+                  </div>
+               );
+            })}
+         </div>
+      </div>
+      <style>{`
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+      `}</style>
+    </div>
+  );
+}
+
+// --- 7. 律动小剧场 ---
+function SentenceGameScreen({ onBack, settings, onUpdateStats }) {
+  // ... (省略部分重复逻辑，保持核心功能不变)
   const [currentIndex, setCurrentIndex] = useState(0);
   const [gamePhase, setGamePhase] = useState('sentence'); 
-  
   const [placedWords, setPlacedWords] = useState([]);
   const [availableWords, setAvailableWords] = useState([]);
   const [sentenceStructure, setSentenceStructure] = useState([]);
   const [isSentenceCompleted, setIsSentenceCompleted] = useState(false);
-  
   const [spellingShuffledLetters, setSpellingShuffledLetters] = useState([]);
   const [spellingPlacedLetters, setSpellingPlacedLetters] = useState([]);
   const [isSpellingCompleted, setIsSpellingCompleted] = useState(false);
   const [spellingShake, setSpellingShake] = useState(false);
-
   const [showCelebration, setShowCelebration] = useState(false);
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-
   const currentChant = CHANT_DATA[currentIndex];
-
-  useEffect(() => {
-    initLevel(currentIndex);
-  }, [currentIndex]);
-
+  
+  useEffect(() => { initLevel(currentIndex); }, [currentIndex]);
+  
   const initLevel = (idx) => {
     const chant = CHANT_DATA[idx];
     setGamePhase('sentence');
-    
     const tokens = chant.sentence.split(/([a-zA-Z]+)/).filter(t => t);
-    const structure = [];
-    const wordsPool = [];
-
+    const structure = [], wordsPool = [];
     tokens.forEach((token, i) => {
       if (/^[a-zA-Z]+$/.test(token)) {
         structure.push({ type: 'word', id: `slot-${i}`, target: token });
         wordsPool.push({ id: `word-${i}-${token}`, text: token, isUsed: false });
-      } else {
-        if(token.trim() === '' && token.length > 0) {
-           // space handling
-        } else {
-            structure.push({ type: 'punct', content: token });
-        }
-      }
+      } else if(token.trim()) structure.push({ type: 'punct', content: token });
     });
-
     setSentenceStructure(structure);
     setPlacedWords(new Array(structure.filter(t => t.type === 'word').length).fill(null));
     setAvailableWords(shuffleArray(wordsPool));
     setIsSentenceCompleted(false);
-    
     const phrase = chant.phrase.word;
-    const lettersOnly = phrase.replace(/\s/g, '').split(''); 
-    
-    const letterObjs = lettersOnly.map((char, i) => ({
-      id: `spell-${char}-${i}-${Math.random()}`,
-      char: char,
-      isUsed: false
-    }));
-    
+    const letterObjs = phrase.replace(/\s/g, '').split('').map((char, i) => ({ id: `spell-${char}-${i}-${Math.random()}`, char: char, isUsed: false }));
     setSpellingShuffledLetters(shuffleArray(letterObjs));
-    
-    const initialSpellingPlaced = phrase.split('').map((char, i) => {
-       if (char === ' ') return { char: ' ', isSpace: true, id: `space-${i}` };
-       return null;
-    });
-    setSpellingPlacedLetters(initialSpellingPlaced);
+    setSpellingPlacedLetters(phrase.split('').map((char, i) => char === ' ' ? { char: ' ', isSpace: true, id: `space-${i}` } : null));
     setIsSpellingCompleted(false);
-
     setShowCelebration(false);
-    
-    setTimeout(() => playAudio(chant.sentence), 800);
+    setTimeout(() => playWordAudio(chant.sentence), 800);
   };
-
-  const playAudio = (text) => {
-    try {
-      if (!window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = 'en-US';
-      u.rate = 0.9;
-      u.pitch = 1.1;
-      u.onstart = () => setIsPlayingAudio(true);
-      u.onend = () => setIsPlayingAudio(false);
-      u.onerror = (e) => {
-        console.error("TTS error:", e);
-        setIsPlayingAudio(false);
-      };
-      window.speechSynthesis.speak(u);
-    } catch (e) {
-      console.error("Speech synthesis failed", e);
-    }
-  };
-
-  const playSuccessSound = () => {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
-      
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-      
-      osc.start();
-      osc.stop(ctx.currentTime + 0.5);
-
-      setTimeout(() => {
-        try {
-            if(ctx.state !== 'closed') ctx.close();
-        } catch(e) {}
-      }, 600);
-    } catch (e) {
-      console.error("Audio error", e);
-    }
-  };
-
-  // --- Logic ---
 
   const handleSentenceWordClick = (wordObj) => {
     if (isSentenceCompleted || wordObj.isUsed) return;
-    const emptyIndex = placedWords.findIndex(w => w === null);
-    if (emptyIndex === -1) return;
-
-    const newPlaced = [...placedWords];
-    newPlaced[emptyIndex] = wordObj;
-    setPlacedWords(newPlaced);
-
-    const newAvailable = availableWords.map(w => w.id === wordObj.id ? { ...w, isUsed: true } : w);
-    setAvailableWords(newAvailable);
-
-    if (newPlaced.every(w => w !== null)) {
-      checkSentenceAnswer(newPlaced);
-    }
+    const idx = placedWords.findIndex(w => w === null);
+    if (idx === -1) return;
+    const newPlaced = [...placedWords]; newPlaced[idx] = wordObj; setPlacedWords(newPlaced);
+    setAvailableWords(availableWords.map(w => w.id === wordObj.id ? { ...w, isUsed: true } : w));
+    if (newPlaced.every(w => w !== null)) checkSentenceAnswer(newPlaced);
   };
 
-  const handleSentenceSlotClick = (slotIndex) => {
-    if (isSentenceCompleted || !placedWords[slotIndex]) return;
-    const wordToReturn = placedWords[slotIndex];
-    const newPlaced = [...placedWords];
-    newPlaced[slotIndex] = null;
-    setPlacedWords(newPlaced);
-    const newAvailable = availableWords.map(w => w.id === wordToReturn.id ? { ...w, isUsed: false } : w);
-    setAvailableWords(newAvailable);
+  const handleSentenceSlotClick = (idx) => {
+    if (isSentenceCompleted || !placedWords[idx]) return;
+    const wordToReturn = placedWords[idx];
+    const newPlaced = [...placedWords]; newPlaced[idx] = null; setPlacedWords(newPlaced);
+    setAvailableWords(availableWords.map(w => w.id === wordToReturn.id ? { ...w, isUsed: false } : w));
   };
 
   const checkSentenceAnswer = (finalPlaced) => {
     const userWords = finalPlaced.map(w => w.text);
     const targetWords = sentenceStructure.filter(s => s.type === 'word').map(s => s.target);
-    const isCorrect = userWords.join('') === targetWords.join('');
-
-    if (isCorrect) {
-      setIsSentenceCompleted(true);
-      playSuccessSound();
-      playAudio(currentChant.sentence);
+    if (userWords.join('') === targetWords.join('')) {
+      setIsSentenceCompleted(true); playWordAudio(currentChant.sentence);
     } else {
       alert("Oops! 顺序不对哦，再试一次！");
       setPlacedWords(new Array(finalPlaced.length).fill(null));
@@ -510,260 +586,99 @@ function SentenceGameScreen({ onBack, settings }) {
     }
   };
 
-  const handleSpellingLetterClick = (letterObj) => {
-    if (isSpellingCompleted || letterObj.isUsed) return;
-    const firstEmptyIndex = spellingPlacedLetters.findIndex(l => l === null);
-    if (firstEmptyIndex === -1) return;
-
-    const newShuffled = spellingShuffledLetters.map(l => l.id === letterObj.id ? { ...l, isUsed: true } : l);
-    const newPlaced = [...spellingPlacedLetters];
-    newPlaced[firstEmptyIndex] = letterObj;
-
-    setSpellingShuffledLetters(newShuffled);
-    setSpellingPlacedLetters(newPlaced);
-
-    if (newPlaced.every(l => l !== null)) {
-      checkSpellingAnswer(newPlaced);
-    }
+  const handleSpellingLetterClick = (item) => {
+     if (isSpellingCompleted || item.isUsed) return;
+     const idx = spellingPlacedLetters.findIndex(l => l === null);
+     if (idx === -1) return;
+     const newShuffled = spellingShuffledLetters.map(l => l.id === item.id ? { ...l, isUsed: true } : l);
+     const newPlaced = [...spellingPlacedLetters]; newPlaced[idx] = item;
+     setSpellingShuffledLetters(newShuffled); setSpellingPlacedLetters(newPlaced);
+     if (newPlaced.every(l => l !== null)) checkSpellingAnswer(newPlaced);
   };
-
-  const handleSpellingSlotClick = (index) => {
-    if (isSpellingCompleted || !spellingPlacedLetters[index] || spellingPlacedLetters[index].isSpace) return;
-    const letterToReturn = spellingPlacedLetters[index];
-    const newPlaced = [...spellingPlacedLetters];
-    newPlaced[index] = null;
-    const newShuffled = spellingShuffledLetters.map(l => l.id === letterToReturn.id ? { ...l, isUsed: false } : l);
-    setSpellingPlacedLetters(newPlaced);
-    setSpellingShuffledLetters(newShuffled);
+  
+  const handleSpellingSlotClick = (idx) => {
+      if(isSpellingCompleted || !spellingPlacedLetters[idx] || spellingPlacedLetters[idx].isSpace) return;
+      const item = spellingPlacedLetters[idx];
+      const newPlaced = [...spellingPlacedLetters]; newPlaced[idx] = null;
+      setSpellingPlacedLetters(newPlaced);
+      setSpellingShuffledLetters(spellingShuffledLetters.map(l => l.id === item.id ? {...l, isUsed: false} : l));
   };
 
   const checkSpellingAnswer = (finalPlaced) => {
-    const userPhrase = finalPlaced.map(l => l.char).join('');
-    if (userPhrase === currentChant.phrase.word) {
-        setIsSpellingCompleted(true);
-        setShowCelebration(true);
-        playSuccessSound();
-        updateGlobalScore(30); 
-        playAudio(currentChant.phrase.word);
-    } else {
-        setSpellingShake(true);
-        setTimeout(() => setSpellingShake(false), 500);
-        const userChars = finalPlaced.filter(l => l && !l.isSpace).map(l => l.id);
-        const resetPlaced = finalPlaced.map(l => (l && l.isSpace) ? l : null);
-        const resetShuffled = spellingShuffledLetters.map(l => userChars.includes(l.id) ? { ...l, isUsed: false } : l);
-        
-        setSpellingPlacedLetters(resetPlaced);
-        setSpellingShuffledLetters(resetShuffled);
-    }
+     if (finalPlaced.map(l => l.char).join('') === currentChant.phrase.word) {
+         setIsSpellingCompleted(true); setShowCelebration(true); onUpdateStats('win'); playWordAudio(currentChant.phrase.word);
+     } else {
+         setSpellingShake(true); setTimeout(() => setSpellingShake(false), 500);
+         const userIds = finalPlaced.filter(l => l && !l.isSpace).map(l => l.id);
+         setSpellingPlacedLetters(finalPlaced.map(l => (l && l.isSpace) ? l : null));
+         setSpellingShuffledLetters(spellingShuffledLetters.map(l => userIds.includes(l.id) ? {...l, isUsed: false} : l));
+     }
   };
 
-  const handleSpellingHint = () => {
-    if (isSpellingCompleted) return;
+  const handleHint = () => {
+    if(isSpellingCompleted) return;
     const emptyIndex = spellingPlacedLetters.findIndex(l => l === null);
     if (emptyIndex === -1) return;
-    const correctChar = currentChant.phrase.word[emptyIndex];
-    const letterToAutoFill = spellingShuffledLetters.find(l => l.char === correctChar && !l.isUsed);
-    if (letterToAutoFill) {
-      handleSpellingLetterClick(letterToAutoFill);
-    }
-  };
-
-  const startSpellingPhase = () => {
-    setGamePhase('spelling');
-    playAudio(currentChant.phrase.word);
-  };
-
-  const nextLevel = () => {
-    if (currentIndex < CHANT_DATA.length - 1) {
-      setCurrentIndex(c => c + 1);
-    } else {
-      alert("🎉 太棒了！你已经完成了所有律动挑战！");
-      onBack();
-    }
+    const char = currentChant.phrase.word[emptyIndex];
+    const target = spellingShuffledLetters.find(l => l.char === char && !l.isUsed);
+    if(target) handleSpellingLetterClick(target);
   };
 
   let wordSlotCounter = 0;
-
   return (
-    <div className={`flex flex-col min-h-[100dvh] w-full overflow-x-hidden overscroll-none select-none ${currentChant.color} transition-colors duration-500`}>
-      <div className="p-4 flex justify-between items-center bg-black/10 text-white backdrop-blur-md sticky top-0 z-20">
-        <button onClick={onBack} className="flex items-center gap-1 font-bold hover:bg-white/20 px-3 py-1 rounded-full active:scale-95 transition-transform">
-          <ArrowLeft className="w-5 h-5" /> <span className="hidden md:inline">退出剧场</span>
-        </button>
-        <span className="font-bold tracking-wider flex items-center gap-2 text-sm md:text-base">
-            <Music className="w-5 h-5 animate-bounce" /> 律动小剧场 ({currentIndex + 1}/{CHANT_DATA.length})
-        </span>
+    <div className={`flex flex-col min-h-[100dvh] w-full overflow-x-hidden ${currentChant.color} transition-colors duration-500`}>
+       <div className="p-4 flex justify-between items-center bg-black/10 text-white backdrop-blur-md sticky top-0 z-20">
+        <button onClick={onBack} className="flex items-center gap-1 font-bold hover:bg-white/20 px-3 py-1 rounded-full"><ArrowLeft className="w-5 h-5" /> 退出</button>
+        <span className="font-bold tracking-wider flex items-center gap-2"><Music className="w-5 h-5 animate-bounce" /> 律动小剧场</span>
       </div>
-
-      <div className="flex-1 flex flex-col items-center justify-center p-4 pb-20">
-        <div className="w-full max-w-3xl bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-4 md:p-8 min-h-[400px] flex flex-col items-center justify-center relative overflow-hidden transition-all">
-          
-          {gamePhase === 'sentence' && (
-            <div className="w-full flex flex-col items-center animate-fade-in-up">
-               <div className="mb-6 md:mb-10 text-center">
-                   <h2 className="text-2xl md:text-4xl font-extrabold text-slate-700 tracking-wide mb-2">
-                       {currentChant.cn}
-                   </h2>
-                   <p className="text-slate-400 text-xs md:text-sm">请将下方的单词归位</p>
-               </div>
-               
-               <div className="flex flex-wrap items-end justify-center gap-2 mb-8 md:mb-12 min-h-[60px] md:min-h-[80px]">
-                 {sentenceStructure.map((item, idx) => {
-                   if (item.type === 'punct') {
-                     return <span key={idx} className="text-3xl md:text-4xl font-bold text-slate-400 mb-2">{item.content}</span>;
-                   }
-                   const currentSlotIndex = wordSlotCounter++;
-                   const filledWord = placedWords[currentSlotIndex];
-                   return (
-                     <div 
-                        key={idx}
-                        onClick={() => handleSentenceSlotClick(currentSlotIndex)}
-                        className={`
-                           min-w-[60px] md:min-w-[80px] h-10 md:h-14 px-2 md:px-4 flex items-center justify-center rounded-xl border-b-4 text-lg md:text-2xl font-bold cursor-pointer transition-all active:scale-95
-                           ${filledWord 
-                             ? (isSentenceCompleted ? 'bg-green-100 border-green-400 text-green-600 scale-110' : 'bg-white border-indigo-200 text-indigo-600 shadow-lg') 
-                             : 'bg-slate-100 border-slate-200 border-dashed text-slate-300'
-                           }
-                        `}
-                     >
-                        {filledWord ? filledWord.text : ''}
+       <div className="flex-1 flex flex-col items-center justify-center p-4 pb-20">
+          <div className="w-full max-w-3xl bg-white/90 backdrop-blur-sm rounded-3xl shadow-2xl p-6 min-h-[400px] flex flex-col items-center justify-center">
+             {gamePhase === 'sentence' ? (
+                 <div className="w-full text-center">
+                    <h2 className="text-3xl font-extrabold text-slate-700 mb-6">{currentChant.cn}</h2>
+                    <div className="flex flex-wrap justify-center gap-2 mb-8">
+                       {sentenceStructure.map((item, i) => {
+                           if(item.type === 'punct') return <span key={i} className="text-4xl font-bold text-slate-400">{item.content}</span>;
+                           const idx = wordSlotCounter++; const filled = placedWords[idx];
+                           return <div key={i} onClick={() => handleSentenceSlotClick(idx)} className={`h-12 px-4 rounded-xl border-b-4 flex items-center text-xl font-bold cursor-pointer ${filled ? 'bg-indigo-100 text-indigo-600 border-indigo-300' : 'bg-slate-100 border-slate-200 border-dashed'}`}>{filled?.text}</div>
+                       })}
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-2">
+                        {!isSentenceCompleted ? availableWords.map(w => (<button key={w.id} onClick={() => handleSentenceWordClick(w)} disabled={w.isUsed} className={`px-4 py-2 rounded-xl font-bold border-b-4 ${w.isUsed ? 'opacity-0' : 'bg-white border-slate-200 hover:-translate-y-1'}`}>{w.text}</button>)) : <button onClick={() => { setGamePhase('spelling'); playWordAudio(currentChant.phrase.word); }} className="bg-indigo-500 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce">拼写挑战 ➡️</button>}
+                    </div>
+                 </div>
+             ) : (
+                 <div className="w-full text-center">
+                     <h2 className="text-2xl font-bold text-slate-700 mb-6">拼写: {currentChant.phrase.cn}</h2>
+                     <div className={`flex justify-center gap-2 mb-8 ${spellingShake ? 'animate-shake' : ''}`}>
+                        {spellingPlacedLetters.map((l, i) => (l?.isSpace ? <div key={i} className="w-4" /> : <div key={i} onClick={() => handleSpellingSlotClick(i)} className={`w-12 h-14 flex items-center justify-center text-2xl font-bold rounded-xl border-b-4 cursor-pointer ${l ? 'bg-white border-blue-200 text-blue-600' : 'bg-slate-100 border-slate-200'}`}>{l?.char}</div>))}
                      </div>
-                   );
-                 })}
-               </div>
-
-               <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-                 {!isSentenceCompleted ? (
-                    availableWords.map((word) => (
-                        <button
-                            key={word.id}
-                            onClick={() => handleSentenceWordClick(word)}
-                            disabled={word.isUsed}
-                            className={`
-                               px-4 md:px-6 py-2 md:py-3 rounded-2xl text-lg md:text-xl font-bold border-b-4 transition-all transform touch-manipulation
-                               ${word.isUsed 
-                                 ? 'opacity-0 scale-50' 
-                                 : 'bg-white border-slate-200 text-slate-700 hover:-translate-y-1 hover:shadow-lg active:scale-95'
-                               }
-                            `}
-                        >
-                            {word.text}
-                        </button>
-                    ))
-                 ) : (
-                    <div className="flex flex-col items-center animate-bounce">
-                        <p className="text-green-600 font-bold mb-2 text-sm md:text-base">句子组装完成！下一步 ⬇️</p>
-                        <button onClick={startSpellingPhase} className="bg-indigo-500 hover:bg-indigo-600 text-white text-lg md:text-xl font-bold py-3 px-8 md:px-12 rounded-full shadow-lg flex items-center gap-2 active:scale-95">
-                             <Edit className="w-5 h-5 md:w-6 md:h-6" /> 拼写核心词组
-                        </button>
-                    </div>
-                 )}
-               </div>
-            </div>
-          )}
-
-          {gamePhase === 'spelling' && (
-             <div className="w-full flex flex-col items-center animate-fade-in-up">
-                <div className="mb-6 md:mb-8 text-center">
-                    <span className="bg-indigo-100 text-indigo-600 text-xs font-bold px-3 py-1 rounded-full mb-2 inline-block">核心词组挑战</span>
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 mb-1">{currentChant.phrase.cn}</h2>
-                    <button onClick={() => playAudio(currentChant.phrase.word)} className="mx-auto flex items-center gap-1 text-indigo-400 text-sm hover:text-indigo-600 active:scale-95 p-2">
-                        <Volume2 className="w-4 h-4" /> 听发音
-                    </button>
-                </div>
-
-                <div className={`flex flex-wrap justify-center gap-2 mb-8 md:mb-10 min-h-[3rem] md:min-h-[4rem] ${spellingShake ? 'animate-shake' : ''}`}>
-                   {spellingPlacedLetters.map((letter, idx) => {
-                     if (letter && letter.isSpace) return <div key={`space-${idx}`} className="w-2 md:w-6 h-10 md:h-12 flex-shrink-0"></div>;
-                     return (
-                       <div
-                         key={idx} onClick={() => handleSpellingSlotClick(idx)}
-                         className={`w-10 h-12 md:w-14 md:h-16 flex items-center justify-center text-2xl md:text-3xl font-bold rounded-xl border-b-4 transition-all cursor-pointer select-none active:scale-95
-                           ${letter ? `bg-white border-blue-200 shadow-md text-blue-600` : 'bg-slate-100 border-slate-200'}
-                           ${isSpellingCompleted && letter ? 'bg-green-100 border-green-400 text-green-600' : ''}
-                         `}
-                       >
-                         {letter ? letter.char : ''}
-                       </div>
-                     );
-                   })}
-                </div>
-
-                <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6">
-                   <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-                       {!isSpellingCompleted ? (
-                           spellingShuffledLetters.map((item) => (
-                            <button
-                              key={item.id} onClick={() => handleSpellingLetterClick(item)} disabled={item.isUsed}
-                              className={`w-10 h-10 md:w-12 md:h-12 flex items-center justify-center text-xl md:text-2xl font-bold rounded-xl transition-all transform duration-200 touch-manipulation
-                                ${item.isUsed ? 'opacity-0 scale-50 cursor-default' : 'bg-yellow-400 hover:bg-yellow-300 text-yellow-900 shadow-[0_4px_0_rgb(161,98,7)] active:scale-90'}
-                              `}
-                            >
-                              {item.char}
-                            </button>
-                           ))
-                       ) : (
-                           <button onClick={nextLevel} className="bg-green-500 hover:bg-green-600 text-white text-lg md:text-xl font-bold py-3 px-8 md:px-12 rounded-full shadow-lg animate-bounce flex items-center gap-2 active:scale-95">
-                               {currentIndex < CHANT_DATA.length - 1 ? '下一句 ➡️' : '全部通关! 🏆'}
-                           </button>
-                       )}
-                   </div>
-                   
-                   {!isSpellingCompleted && settings?.enableHints && (
-                      <button 
-                          onClick={handleSpellingHint}
-                          className="w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-amber-200 rounded-2xl flex items-center justify-center shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all group touch-manipulation"
-                          title="提示"
-                      >
-                          <Lightbulb className="w-6 h-6 md:w-8 md:h-8 text-amber-400 fill-amber-400 group-hover:animate-pulse" />
-                      </button>
-                   )}
-                </div>
-
-                {showCelebration && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 opacity-20">
-                        <span className="text-9xl animate-ping">🌟</span>
-                    </div>
-                )}
-             </div>
-          )}
-
-        </div>
-      </div>
-      <style>{`
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-        .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes fade-in-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
-      `}</style>
+                     <div className="flex justify-center gap-2 mb-6">
+                        {!isSpellingCompleted ? spellingShuffledLetters.map(l => (<button key={l.id} onClick={() => handleSpellingLetterClick(l)} disabled={l.isUsed} className={`w-12 h-12 rounded-xl font-bold text-xl ${l.isUsed ? 'opacity-0' : 'bg-yellow-400 text-yellow-900 shadow-md active:scale-95'}`}>{l.char}</button>)) : <button onClick={() => {if(currentIndex < CHANT_DATA.length - 1) setCurrentIndex(c=>c+1); else {alert('通关!'); onBack();}}} className="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce">{currentIndex < CHANT_DATA.length - 1 ? '下一句 ➡️' : '完成!'}</button>}
+                     </div>
+                     {!isSpellingCompleted && settings.enableHints && <button onClick={handleHint} className="mx-auto w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-500"><Lightbulb/></button>}
+                     {showCelebration && <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-9xl animate-ping opacity-20">🌟</div>}
+                 </div>
+             )}
+          </div>
+       </div>
+       <style>{`.animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; } @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }`}</style>
     </div>
   );
 }
 
-// --- 4. 单词拼写游戏主组件 (GameScreen) ---
+// --- 8. 单词拼写游戏主组件 ---
 
 function GameScreen({
-  words,          
-  mode,            
-  onBack,
-  isMistakeMode = false,
-  initialIndex = 0,
-  initialScore = 0,
-  preShuffled = false, 
-  onProgressUpdate = null,
-  settings 
+  words, mode, onBack, isMistakeMode = false,
+  initialIndex = 0, initialScore = 0, preShuffled = false, 
+  onProgressUpdate = null, settings, onUpdateStats
 }) {
-  // 这里做一个过滤，确保只显示 isActive 为 true 的单词 (大乱斗和错题本除外，这俩模式逻辑独立)
-  const activeWords = useMemo(() => {
-    if (isMistakeMode || mode === 'brawl') return words;
-    return words.filter(w => w.isActive !== false);
-  }, [words, isMistakeMode, mode]);
-
+  const activeWords = useMemo(() => isMistakeMode || mode === 'brawl' ? words : words.filter(w => w.isActive !== false), [words, isMistakeMode, mode]);
   const workingWords = useMemo(() => {
     if (activeWords.length === 0) return [];
     if (preShuffled) return activeWords;
-    if (Array.isArray(activeWords)) return shuffleArray(activeWords);
-    return shuffleArray(Object.values(activeWords));
+    return shuffleArray(Array.isArray(activeWords) ? activeWords : Object.values(activeWords));
   }, [activeWords, preShuffled]);
 
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -781,923 +696,363 @@ function GameScreen({
   const currentWordObj = workingWords[currentIndex];
 
   useEffect(() => {
-    if (mode === 'brawl' && onProgressUpdate) {
-      onProgressUpdate({
-        words: workingWords, 
-        currentIndex,
-        score
-      });
-    }
-  }, [currentIndex, score, mode, workingWords, onProgressUpdate]);
+    if (mode === 'brawl' && onProgressUpdate) onProgressUpdate({ words: workingWords, currentIndex, score });
+  }, [currentIndex, score, mode, workingWords]);
 
   useEffect(() => {
     if (currentWordObj) {
       initWord(currentWordObj);
       audioPlayedRef.current = false;
-      if (isMistakeMode) {
-        setCurrentHearts(currentWordObj.hearts || 0);
-      }
+      if (isMistakeMode) setCurrentHearts(currentWordObj.hearts || 0);
     }
   }, [currentIndex, currentWordObj]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!audioPlayedRef.current && currentWordObj && !graduatedAnimation) {
-        playAudio();
+        playWordAudio(currentWordObj.word);
         audioPlayedRef.current = true;
       }
     }, 500);
-    return () => {
-      clearTimeout(timer);
-      window.speechSynthesis.cancel();
-    };
+    return () => { clearTimeout(timer); window.speechSynthesis.cancel(); };
   }, [currentIndex, currentWordObj, graduatedAnimation]);
 
   const initWord = (wordObj) => {
     const phrase = wordObj.word;
-    const lettersOnly = phrase.replace(/\s/g, '').split('');
-    const letterObjs = lettersOnly.map((char, i) => ({
-      id: `${char}-${i}-${Math.random()}`,
-      char: char,
-      isUsed: false
-    }));
-    const shuffled = shuffleArray(letterObjs);
-
-    setShuffledLetters(shuffled);
-    const initialPlaced = phrase.split('').map((char, i) => {
-      if (char === ' ') return { char: ' ', isSpace: true, id: `space-${i}` };
-      return null;
-    });
-    setPlacedLetters(initialPlaced);
-    setIsCompleted(false);
-    setShowCelebration(false);
-    setShowHint(false);
-    setGraduatedAnimation(false);
+    const letterObjs = phrase.replace(/\s/g, '').split('').map((char, i) => ({ id: `${char}-${i}-${Math.random()}`, char: char, isUsed: false }));
+    setShuffledLetters(shuffleArray(letterObjs));
+    setPlacedLetters(phrase.split('').map((char, i) => char === ' ' ? { char: ' ', isSpace: true, id: `space-${i}` } : null));
+    setIsCompleted(false); setShowCelebration(false); setShowHint(false); setGraduatedAnimation(false);
   };
 
-  const playSuccessSound = () => {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (!AudioContext) return;
-      
-      const ctx = new AudioContext();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(440, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.1);
-      
-      gain.gain.setValueAtTime(0.1, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-      
-      osc.start();
-      osc.stop(ctx.currentTime + 0.5);
-
-      setTimeout(() => {
-        try {
-            if(ctx.state !== 'closed') ctx.close();
-        } catch(e) {}
-      }, 600);
-    } catch (e) {
-      console.error("Audio error", e);
-    }
+  const handleLetterClick = (item) => {
+    if (isCompleted || item.isUsed) return;
+    const idx = placedLetters.findIndex(l => l === null);
+    if (idx === -1) return;
+    const newShuffled = shuffledLetters.map(l => l.id === item.id ? { ...l, isUsed: true } : l);
+    const newPlaced = [...placedLetters]; newPlaced[idx] = item;
+    setShuffledLetters(newShuffled); setPlacedLetters(newPlaced);
+    if (newPlaced.every(l => l !== null)) checkAnswer(newPlaced);
   };
 
-  const playAudio = () => {
-    try {
-      if (!currentWordObj || !window.speechSynthesis) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(currentWordObj.word);
-      utterance.lang = 'en-US';
-      utterance.rate = 1.0;
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoice = voices.find(v => v.name.includes('Google') && v.lang.includes('en-US'));
-      if (preferredVoice) utterance.voice = preferredVoice;
-      utterance.onerror = (e) => console.error("TTS Error", e);
-      window.speechSynthesis.speak(utterance);
-    } catch (e) {
-      console.error("Speech synthesis failed", e);
-    }
-  };
-
-  const handleLetterClick = (letterObj) => {
-    if (isCompleted || letterObj.isUsed) return;
-    const firstEmptyIndex = placedLetters.findIndex(l => l === null);
-    if (firstEmptyIndex === -1) return;
-
-    const newShuffled = shuffledLetters.map(l => l.id === letterObj.id ? { ...l, isUsed: true } : l);
-    const newPlaced = [...placedLetters];
-    newPlaced[firstEmptyIndex] = letterObj;
-
-    setShuffledLetters(newShuffled);
-    setPlacedLetters(newPlaced);
-
-    if (newPlaced.every(l => l !== null)) {
-      checkAnswer(newPlaced);
-    }
-  };
-  
+  // [纠错修复版] 智能提示: 强制纠错
   const handleSmartHint = () => {
     if (isCompleted) return;
-    const emptyIndex = placedLetters.findIndex(l => l === null);
-    if (emptyIndex === -1) return;
-    const correctChar = currentWordObj.word[emptyIndex];
-    const letterToAutoFill = shuffledLetters.find(l => l.char === correctChar && !l.isUsed);
+    const targetWord = currentWordObj.word;
+    let indexToFix = -1;
+    
+    // 1. 优先找空格
+    indexToFix = placedLetters.findIndex(l => l === null);
+    // 2. 如果全满，找错位
+    if (indexToFix === -1) {
+       indexToFix = placedLetters.findIndex((l, i) => l && l.char !== targetWord[i]);
+    }
+    if (indexToFix === -1) return;
+
+    const correctChar = targetWord[indexToFix];
+    let tempPlaced = [...placedLetters];
+    let tempShuffled = [...shuffledLetters];
+
+    // 移除占位错误
+    if (tempPlaced[indexToFix] !== null) {
+        const wrongLetter = tempPlaced[indexToFix];
+        tempPlaced[indexToFix] = null;
+        tempShuffled = tempShuffled.map(l => l.id === wrongLetter.id ? { ...l, isUsed: false } : l);
+    }
+
+    // 填入正确
+    const letterToAutoFill = tempShuffled.find(l => l.char === correctChar && !l.isUsed);
     if (letterToAutoFill) {
-      handleLetterClick(letterToAutoFill);
+        tempPlaced[indexToFix] = letterToAutoFill;
+        tempShuffled = tempShuffled.map(l => l.id === letterToAutoFill.id ? { ...l, isUsed: true } : l);
+        setPlacedLetters(tempPlaced); setShuffledLetters(tempShuffled);
+        if (tempPlaced.every(l => l !== null)) checkAnswer(tempPlaced);
     }
   };
 
-  const handleSlotClick = (index) => {
-    if (isCompleted || !placedLetters[index] || placedLetters[index].isSpace) return;
-    const letterToReturn = placedLetters[index];
-    const newPlaced = [...placedLetters];
-    newPlaced[index] = null;
-    const newShuffled = shuffledLetters.map(l => l.id === letterToReturn.id ? { ...l, isUsed: false } : l);
+  const handleSlotClick = (idx) => {
+    if (isCompleted || !placedLetters[idx] || placedLetters[idx].isSpace) return;
+    const item = placedLetters[idx];
+    const newPlaced = [...placedLetters]; newPlaced[idx] = null;
     setPlacedLetters(newPlaced);
-    setShuffledLetters(newShuffled);
+    setShuffledLetters(shuffledLetters.map(l => l.id === item.id ? { ...l, isUsed: false } : l));
   };
 
   const checkAnswer = (finalPlaced) => {
     const userPhrase = finalPlaced.map(l => l.char).join('');
-
     if (userPhrase === currentWordObj.word) {
       setIsCompleted(true);
-      playSuccessSound();
-
+      playWordAudio(currentWordObj.word);
       if (isMistakeMode) {
-        const result = updateMistakeProgress(currentWordObj.word, true);
-        if (result === 'graduated') {
-          setGraduatedAnimation(true);
-        } else {
-          setCurrentHearts(h => h + 1);
-          setShowCelebration(true);
-          setScore(s => s + 10);
-          updateGlobalScore(10);
-        }
+         const res = updateMistakeProgress(currentWordObj.word, true);
+         if(res === 'graduated') setGraduatedAnimation(true);
+         else { setCurrentHearts(h => h+1); setShowCelebration(true); setScore(s => s+10); updateGlobalScore(10); }
       } else {
-        setShowCelebration(true);
-        setScore(s => s + 10);
-        setShowHint(true);
-        updateGlobalScore(10);
+         setShowCelebration(true); setScore(s => s+10); updateGlobalScore(10);
       }
+      onUpdateStats('win', showHint);
     } else {
-      setShake(true);
-      setTimeout(() => setShake(false), 500);
-      if (isMistakeMode) {
-        updateMistakeProgress(currentWordObj.word, false);
-        setCurrentHearts(0);
-      } else {
-        addMistake(currentWordObj);
-      }
+      setShake(true); setTimeout(() => setShake(false), 500);
+      onUpdateStats('mistake');
+      if (isMistakeMode) { updateMistakeProgress(currentWordObj.word, false); setCurrentHearts(0); }
+      else addMistake(currentWordObj);
     }
   };
 
   const nextLevel = () => {
-    if (currentIndex < workingWords.length - 1) {
-      setCurrentIndex(c => c + 1);
-    } else {
-      if (mode === 'brawl') {
-        clearBrawlProgress();
-        alert(`🏆 全明星大乱斗通关！太厉害了！总分：${score}`);
-      } else {
-        alert(`太棒了！本轮挑战完成啦！总分：${score}`);
-      }
-      onBack();
+    if (currentIndex < workingWords.length - 1) setCurrentIndex(c => c + 1);
+    else {
+      if (mode === 'brawl') clearBrawlProgress();
+      alert(`🎉 恭喜通关！`); onBack();
     }
   };
 
-  const handleHint = () => {
-    setShowHint(true);
-    if (!isMistakeMode) {
-      addMistake(currentWordObj);
-    } else {
-      updateMistakeProgress(currentWordObj.word, false);
-      setCurrentHearts(0);
-    }
+  const handleHintTrigger = () => {
+    handleSmartHint(); setShowHint(true); onUpdateStats('hint');
   };
 
   const effectiveMode = mode === 'brawl' ? 'visual' : mode;
-  const shouldShowVisuals = effectiveMode === 'visual' || effectiveMode === 'notebook' || showHint || isCompleted;
+  const isDictation = effectiveMode === 'dictation';
+  const shouldShowVisuals = effectiveMode === 'visual' || effectiveMode === 'notebook' || showHint || isCompleted || (isDictation && isCompleted);
 
-  if (!currentWordObj) {
-     if (activeWords.length === 0) {
-       return (
-         <div className="flex flex-col items-center justify-center min-h-[50vh] p-8 text-center">
-            <h2 className="text-2xl font-bold text-slate-700 mb-2">哎呀，没有单词了？</h2>
-            <p className="text-slate-500 mb-6">你好像把这个单元的单词都隐藏了。请去“管理单词”里勾选一些单词吧！</p>
-            <button onClick={onBack} className="bg-indigo-500 text-white px-6 py-2 rounded-full">返回</button>
-         </div>
-       )
-     }
-     return <div className="text-center p-10">加载中...</div>;
-  }
-
-  // 修复：使用 React.createElement 动态渲染图标，避免加载时的JSX错误
-  const IconComponent = currentWordObj.icon || HelpCircle; // 默认图标
+  if (!currentWordObj) return <div className="text-center p-10">加载中...</div>;
 
   return (
-    <div className="flex flex-col min-h-[100dvh] w-full overflow-x-hidden overscroll-none select-none bg-slate-50">
-      <div className={`p-4 flex justify-between items-center shadow-md relative z-10 transition-colors duration-500 
-        ${isMistakeMode ? 'bg-red-500 text-white' : (mode === 'brawl' ? 'bg-violet-600 text-white' : 'bg-indigo-500 text-white')}`}>
-        
-        <div className="flex items-center gap-2">
-          <button onClick={onBack} className="flex items-center gap-1 font-bold hover:bg-white/20 px-3 py-1 rounded-full transition active:scale-95">
-            <ArrowLeft className="w-5 h-5" /> 返回
-          </button>
-          <span className="text-xs font-semibold px-2 py-1 bg-white/20 rounded-lg border border-white/30 hidden md:inline-block">
-            {isMistakeMode ? '📕 单词加油站' : (mode === 'brawl' ? '⚔️ 全明星大乱斗' : (mode === 'blind' ? '🎧 听音挑战' : '👀 看图练习'))}
-          </span>
-        </div>
-
-        {mode === 'brawl' && (
-           <div className="flex-1 mx-4 max-w-xs hidden md:flex flex-col gap-1">
-             <div className="flex justify-between text-xs opacity-90">
-               <span>进度</span>
-               <span>{currentIndex + 1} / {workingWords.length}</span>
-             </div>
-             <div className="h-2 bg-black/20 rounded-full overflow-hidden">
-               <div 
-                 className="h-full bg-yellow-400 transition-all duration-500"
-                 style={{ width: `${((currentIndex + 1) / workingWords.length) * 100}%` }}
-               ></div>
-             </div>
-           </div>
-        )}
-
-        {isMistakeMode ? (
-          <div className="flex items-center gap-1 bg-black/20 px-3 py-1 rounded-full">
-            {[0, 1, 2].map(i => (
-              <Heart key={i} className={`w-5 h-5 ${i < currentHearts ? 'fill-red-300 text-red-300' : 'text-white/30'}`} />
-            ))}
+    <div className="flex flex-col min-h-[100dvh] w-full bg-slate-50">
+       <div className={`p-4 flex justify-between items-center shadow-md relative z-10 transition-colors duration-500 ${isMistakeMode ? 'bg-red-500' : 'bg-indigo-500'} text-white`}>
+          <div className="flex items-center gap-2">
+             <button onClick={onBack} className="flex items-center gap-1 font-bold bg-white/20 px-3 py-1 rounded-full"><ArrowLeft className="w-5 h-5" /> 返回</button>
+             <span className="text-xs font-semibold px-2 py-1 bg-white/20 rounded-lg hidden md:inline-block">{mode === 'dictation' ? '📝 默写测验' : '👀 看图练习'}</span>
           </div>
-        ) : (
-          <div className="flex items-center space-x-2 bg-white/20 px-4 py-1 rounded-full">
-            <Trophy className="w-5 h-5 text-yellow-300 fill-yellow-300" />
-            <span className="font-bold text-lg">{score}</span>
-            {mode === 'brawl' && <Save className="w-4 h-4 text-white/50 ml-2" />}
-          </div>
-        )}
-      </div>
+          <div className="flex items-center space-x-2 bg-white/20 px-4 py-1 rounded-full"><Trophy className="w-5 h-5 text-yellow-300 fill-yellow-300" /><span className="font-bold text-lg">{score}</span></div>
+       </div>
 
-      <div className={`flex-1 flex items-center justify-center p-4 pb-20 ${mode === 'brawl' ? 'bg-violet-50' : ''}`}>
-        <div className={`bg-white max-w-2xl w-full rounded-3xl shadow-xl border-4 overflow-hidden relative min-h-[400px] flex flex-col
-          ${isMistakeMode ? 'border-red-100' : (mode === 'brawl' ? 'border-violet-200' : 'border-slate-100')}
-        `}>
-          {graduatedAnimation && (
-            <div className="absolute inset-0 z-50 bg-white/90 backdrop-blur-sm flex flex-col items-center justify-center animate-fade-in-up">
-              <GraduationCap className="w-24 h-24 text-yellow-500 mb-4 animate-bounce" />
-              <h2 className="text-3xl font-bold text-gray-800 mb-2">太棒了！彻底掌握！</h2>
-              <p className="text-gray-500 mb-6">这个词已经从错题本移除咯~</p>
-              <button onClick={nextLevel} className="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:bg-green-600 transition active:scale-95">
-                下一关
-              </button>
-            </div>
-          )}
-
-          <div className="p-4 md:p-10 flex flex-col items-center flex-1">
-            <div className="relative mb-6 text-center h-32 md:h-40 flex flex-col justify-center items-center w-full">
-              {shouldShowVisuals ? (
-                <div className="transition-all duration-500 animate-fade-in-up">
-                  <div className={`text-6xl md:text-8xl mb-2 md:mb-4 transition-transform duration-300 ${isCompleted ? 'scale-110 rotate-6' : ''}`}>
-                    {currentWordObj.emoji}
-                  </div>
-                  <h2 className={`text-xl md:text-3xl font-bold tracking-widest ${getColor(currentIndex)}`}>
-                    {currentWordObj.cn}
-                  </h2>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center animate-pulse group">
-                  <div
-                    className="w-24 h-24 md:w-32 md:h-32 bg-indigo-100 rounded-3xl flex items-center justify-center border-4 border-indigo-200 mb-2 cursor-pointer hover:bg-indigo-200 transition-colors shadow-inner active:scale-95"
-                    onClick={handleHint}
-                  >
-                    <HelpCircle className="w-12 h-12 md:w-16 md:h-16 text-indigo-400 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <p className="text-xs md:text-sm text-indigo-400 font-medium">听不出来？点我看看</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-4 mb-6 md:mb-8">
-              <button onClick={playAudio} className="flex items-center gap-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-4 md:px-5 py-2 rounded-full transition-all font-bold shadow-sm active:scale-95 text-sm md:text-base">
-                <Volume2 className="w-4 h-4 md:w-5 md:h-5" /> 听听看
-              </button>
-              {!shouldShowVisuals && (
-                <button onClick={handleHint} className="flex items-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-600 px-3 md:px-4 py-2 rounded-full transition-all font-bold shadow-sm active:scale-95 text-sm md:text-base">
-                  <Lightbulb className="w-4 h-4 md:w-5 md:h-5" /> 偷看一眼
-                </button>
-              )}
-            </div>
-
-            <div className={`flex flex-wrap justify-center gap-2 px-2 min-h-[3rem] md:min-h-[4rem] ${shake ? 'animate-shake' : ''}`}>
-              {placedLetters.map((letter, idx) => {
-                if (letter && letter.isSpace) return <div key={`space-${idx}`} className="w-2 md:w-6 h-10 md:h-12 flex-shrink-0"></div>;
-                return (
-                  <div
-                    key={idx} onClick={() => handleSlotClick(idx)}
-                    className={`w-10 h-12 md:w-14 md:h-16 flex items-center justify-center text-2xl md:text-3xl font-bold rounded-xl border-b-4 transition-all cursor-pointer select-none active:scale-95
-                      ${letter ? `bg-white border-blue-200 shadow-md text-blue-600` : 'bg-slate-100 border-slate-200'}
-                      ${isCompleted && letter ? 'bg-green-100 border-green-400 text-green-600' : ''}
-                    `}
-                  >
-                    {letter ? letter.char : ''}
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="h-6 md:h-8 mb-4 md:mb-6 mt-2 flex items-center justify-center gap-1">
-              {isCompleted && currentWordObj.syllables && currentWordObj.syllables.map((syl, i) => (
-                <React.Fragment key={i}>
-                  <span className="text-sm md:text-base font-medium text-green-500 animate-fade-in-up">
-                    {syl}
-                  </span>
-                  {i < currentWordObj.syllables.length - 1 && <span className="text-green-300 mx-0.5">·</span>}
-                </React.Fragment>
-              ))}
-            </div>
-
-            <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 min-h-[4.5rem]">
-              <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-                {!isCompleted ? (
-                  shuffledLetters.map((item) => (
-                    <button
-                      key={item.id} onClick={() => handleLetterClick(item)} disabled={item.isUsed}
-                      className={`w-10 h-10 md:w-14 md:h-14 flex items-center justify-center text-xl md:text-2xl font-bold rounded-xl transition-all transform duration-200 touch-manipulation
-                        ${item.isUsed ? 'opacity-0 scale-50 cursor-default' : 'bg-yellow-400 hover:bg-yellow-300 text-yellow-900 shadow-[0_4px_0_rgb(161,98,7)] active:translate-y-1 active:scale-90'}
-                      `}
-                    >
-                      {item.char}
-                    </button>
-                  ))
-                ) : (
-                  !graduatedAnimation && (
-                    <div className="animate-fade-in-up">
-                      <button onClick={nextLevel} className="bg-green-500 hover:bg-green-600 text-white text-lg md:text-xl font-bold py-3 px-8 md:px-10 rounded-full shadow-lg transform transition hover:scale-105 flex items-center gap-2 active:scale-95">
-                        {currentIndex < workingWords.length - 1 ? '下一关 ➡️' : '完成挑战! 🏆'}
-                      </button>
-                    </div>
-                  )
-                )}
-              </div>
-
-               {!isCompleted && settings?.enableHints && (
-                  <button 
-                      onClick={handleSmartHint}
-                      className="w-10 h-10 md:w-14 md:h-14 bg-white border-4 border-amber-200 rounded-2xl flex items-center justify-center shadow-sm hover:shadow-md hover:scale-105 active:scale-95 transition-all group touch-manipulation"
-                      title="提示"
-                  >
-                      <Lightbulb className="w-6 h-6 md:w-8 md:h-8 text-amber-400 fill-amber-400 group-hover:animate-pulse" />
-                  </button>
-               )}
-            </div>
-            
-            {mode === 'brawl' && !isCompleted && (
-                <div className="mt-4 md:mt-6 text-xs text-gray-400 flex items-center gap-1">
-                    <Save className="w-3 h-3" /> 进度自动保存中
-                </div>
-            )}
-          </div>
-        </div>
-      </div>
-      <style>{`
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
-        .animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
-        @keyframes fade-in-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }
-      `}</style>
-    </div>
-  );
-}
-
-// --- 5. [新] 单词管理器弹窗 (CRUD & Selection) ---
-
-function WordManagerModal({ unit, words, onUpdateWords, onClose }) {
-  // 本地暂存状态，点击保存才提交
-  const [editingWords, setEditingWords] = useState(words);
-  const [newWord, setNewWord] = useState("");
-  const [newCn, setNewCn] = useState("");
-  const scrollRef = useRef(null);
-
-  const handleToggleActive = (index) => {
-    const updated = [...editingWords];
-    updated[index] = { ...updated[index], isActive: !updated[index].isActive };
-    setEditingWords(updated);
-  };
-
-  const handleDelete = (index) => {
-    if(window.confirm("确定要删除这个单词吗？")) {
-       const updated = editingWords.filter((_, i) => i !== index);
-       setEditingWords(updated);
-    }
-  };
-
-  const handleAddWord = () => {
-    if (!newWord.trim() || !newCn.trim()) {
-      alert("请输入英文单词和中文意思哦！");
-      return;
-    }
-    const newItem = {
-      word: newWord.trim(),
-      cn: newCn.trim(),
-      emoji: getRandomEmoji(), // 随机图标
-      isActive: true,
-      syllables: [newWord.trim()] // 简单的音节处理
-    };
-    
-    setEditingWords([...editingWords, newItem]);
-    setNewWord("");
-    setNewCn("");
-    
-    // 滚动到底部
-    setTimeout(() => {
-        if(scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }, 100);
-  };
-  
-  const handleSave = () => {
-      onUpdateWords(unit.id, editingWords);
-      onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center p-4 animate-fade-in-up">
-       <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl flex flex-col max-h-[85vh] overflow-hidden relative">
-          <div className={`p-4 ${unit.themeColor.split(' ')[0]} flex items-center justify-between`}>
-             <h2 className="text-xl font-bold flex items-center gap-2 text-gray-800">
-                <Edit className="w-5 h-5" /> 管理单词: {unit.subtitle}
-             </h2>
-             <button onClick={onClose} className="bg-white/50 hover:bg-white p-2 rounded-full transition"><X className="w-5 h-5"/></button>
-          </div>
-          
-          <div className="p-2 bg-yellow-50 text-yellow-700 text-xs text-center border-b border-yellow-100">
-             勾选要练习的单词，或者添加你自己的新单词！
-          </div>
-
-          <div className="flex-1 overflow-y-auto p-4 space-y-2" ref={scrollRef}>
-             {editingWords.map((item, index) => (
-               <div key={index} className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${item.isActive ? 'bg-white border-indigo-100' : 'bg-gray-50 border-gray-100 opacity-60'}`}>
-                  <button onClick={() => handleToggleActive(index)} className="focus:outline-none">
-                     {item.isActive ? <CheckSquare className="w-6 h-6 text-indigo-500" /> : <Square className="w-6 h-6 text-gray-400" />}
-                  </button>
-                  <div className="flex-1">
-                     <div className="flex items-center gap-2">
-                        <span className="text-xl">{item.emoji}</span>
-                        <span className="font-bold text-gray-800">{item.word}</span>
-                     </div>
-                     <div className="text-xs text-gray-500">{item.cn}</div>
-                  </div>
-                  <button onClick={() => handleDelete(index)} className="p-2 text-gray-300 hover:text-red-500 transition hover:bg-red-50 rounded-full">
-                     <Trash2 className="w-5 h-5" />
-                  </button>
-               </div>
-             ))}
+       <div className="flex-1 flex items-center justify-center p-4 pb-20">
+          <div className="bg-white max-w-2xl w-full rounded-3xl shadow-xl border-4 border-slate-100 overflow-hidden relative min-h-[400px] flex flex-col">
+             {graduatedAnimation && <div className="absolute inset-0 z-50 bg-white/90 flex flex-col items-center justify-center animate-fade-in-up"><GraduationCap className="w-24 h-24 text-yellow-500 mb-4 animate-bounce" /><h2 className="text-3xl font-bold">已掌握！</h2><button onClick={nextLevel} className="mt-4 bg-green-500 text-white px-8 py-2 rounded-full font-bold">下一关</button></div>}
              
-             {editingWords.length === 0 && (
-                <div className="text-center py-10 text-gray-400">
-                   还没有单词哦，快来添加一个吧！
+             <div className="p-4 flex flex-col items-center flex-1">
+                <div className="relative mb-6 text-center h-32 flex flex-col justify-center items-center w-full">
+                   {shouldShowVisuals ? (
+                      <div className="animate-fade-in-up">
+                         <div className={`text-6xl mb-2 transition-transform duration-300 ${isCompleted ? 'scale-110 rotate-6' : ''}`}>{currentWordObj.emoji}</div>
+                         <h2 className={`text-2xl font-bold tracking-widest ${getColor(currentIndex)}`}>{currentWordObj.cn}</h2>
+                      </div>
+                   ) : (
+                      <div className="flex flex-col items-center animate-pulse cursor-pointer" onClick={handleHintTrigger}>
+                         <div className="text-6xl mb-2 text-slate-200"><Keyboard className="w-20 h-20 mx-auto"/></div>
+                         <h2 className={`text-2xl font-bold tracking-widest ${getColor(currentIndex)}`}>{currentWordObj.cn}</h2>
+                         {isDictation && <p className="text-xs text-slate-400 mt-2">(看中文默写)</p>}
+                      </div>
+                   )}
                 </div>
-             )}
-          </div>
 
-          <div className="p-4 bg-gray-50 border-t border-gray-200">
-             <div className="flex gap-2 mb-4">
-                <input 
-                  value={newWord}
-                  onChange={(e) => setNewWord(e.target.value)}
-                  placeholder="英文 (如: cat)" 
-                  className="flex-1 p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                />
-                <input 
-                  value={newCn}
-                  onChange={(e) => setNewCn(e.target.value)}
-                  placeholder="中文 (如: 猫)" 
-                  className="flex-1 p-3 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-300"
-                />
-                <button onClick={handleAddWord} className="bg-green-500 hover:bg-green-600 text-white p-3 rounded-xl transition shadow-md active:scale-95">
-                   <Plus className="w-6 h-6" />
-                </button>
+                <div className="flex items-center gap-4 mb-6">
+                   <button onClick={() => playWordAudio(currentWordObj.word)} className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-full font-bold shadow-sm active:scale-95"><Volume2 className="w-5 h-5"/> 听发音</button>
+                   {!isCompleted && <button onClick={handleHintTrigger} className="flex items-center gap-2 bg-amber-50 text-amber-600 px-4 py-2 rounded-full font-bold shadow-sm active:scale-95"><Lightbulb className="w-5 h-5"/> 提示</button>}
+                </div>
+
+                <div className={`flex flex-wrap justify-center gap-2 min-h-[4rem] ${shake ? 'animate-shake' : ''}`}>
+                   {placedLetters.map((l, i) => l?.isSpace ? <div key={i} className="w-4"/> : <div key={i} onClick={() => handleSlotClick(i)} className={`w-12 h-14 flex items-center justify-center text-2xl font-bold rounded-xl border-b-4 cursor-pointer ${l ? 'bg-white border-blue-200 text-blue-600' : 'bg-slate-100 border-slate-200'} ${isCompleted && l ? 'bg-green-100 border-green-400 text-green-600' : ''}`}>{l?.char}</div>)}
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-3 mt-8 min-h-[4rem]">
+                   {!isCompleted ? shuffledLetters.map(l => (<button key={l.id} onClick={() => handleLetterClick(l)} disabled={l.isUsed} className={`w-12 h-12 rounded-xl font-bold text-xl ${l.isUsed ? 'opacity-0' : 'bg-yellow-400 text-yellow-900 shadow-md active:scale-95'}`}>{l.char}</button>)) : !graduatedAnimation && <button onClick={nextLevel} className="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce">下一关 ➡️</button>}
+                </div>
              </div>
-             <button onClick={handleSave} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
-                <Save className="w-5 h-5" /> 保存修改
-             </button>
           </div>
        </div>
+       <style>{`.animate-shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; } @keyframes fade-in-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } } .animate-fade-in-up { animation: fade-in-up 0.5s ease-out forwards; }`}</style>
     </div>
   );
 }
 
-// --- 6. 模式选择弹窗 (更新：加入管理入口) ---
+// --- 9. 辅助弹窗 ---
+
+function WordManagerModal({ unit, words, onUpdateWords, onClose }) {
+    const [editingWords, setEditingWords] = useState(words);
+    const [newWord, setNewWord] = useState("");
+    const [newCn, setNewCn] = useState("");
+    const scrollRef = useRef(null);
+    const handleAdd = () => { if(!newWord || !newCn) return; setEditingWords([...editingWords, { word: newWord, cn: newCn, emoji: getRandomEmoji(), isActive: true, syllables: [newWord] }]); setNewWord(""); setNewCn(""); setTimeout(() => scrollRef.current.scrollTop = scrollRef.current.scrollHeight, 100); };
+    return (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+                <div className="p-4 bg-gray-100 flex justify-between font-bold"><span>管理单词: {unit.subtitle}</span><button onClick={onClose}><X/></button></div>
+                <div className="flex-1 overflow-y-auto p-4 space-y-2" ref={scrollRef}>
+                    {editingWords.map((w, i) => (
+                        <div key={i} className={`flex items-center gap-2 p-2 rounded border ${w.isActive ? 'bg-white' : 'bg-gray-100 opacity-60'}`}>
+                            <button onClick={() => {const n = [...editingWords]; n[i].isActive = !n[i].isActive; setEditingWords(n)}}>{w.isActive ? <CheckSquare className="text-indigo-500"/> : <Square/>}</button>
+                            <span className="text-2xl">{w.emoji}</span>
+                            <div className="flex-1 font-bold">{w.word} <span className="text-xs font-normal text-gray-500">{w.cn}</span></div>
+                            <button onClick={() => setEditingWords(editingWords.filter((_, idx) => idx !== i))}><Trash2 className="text-gray-300 hover:text-red-500"/></button>
+                        </div>
+                    ))}
+                </div>
+                <div className="p-4 border-t bg-gray-50">
+                    <div className="flex gap-2 mb-2"><input value={newWord} onChange={e=>setNewWord(e.target.value)} placeholder="英文" className="border p-2 rounded flex-1"/><input value={newCn} onChange={e=>setNewCn(e.target.value)} placeholder="中文" className="border p-2 rounded flex-1"/><button onClick={handleAdd} className="bg-green-500 text-white p-2 rounded"><Plus/></button></div>
+                    <button onClick={() => { onUpdateWords(unit.id, editingWords); onClose(); }} className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold">保存</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SettingsModal({ isOpen, onClose, settings, onUpdateSettings, onResetData }) {
+    if(!isOpen) return null;
+    return (
+        <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 w-full max-w-sm">
+                <h2 className="text-2xl font-bold text-center mb-6">设置</h2>
+                <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl mb-4"><span>💡 拼写提示</span><button onClick={() => onUpdateSettings({...settings, enableHints: !settings.enableHints})} className={`w-12 h-6 rounded-full transition-colors ${settings.enableHints ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full transition-transform ${settings.enableHints ? 'translate-x-7' : 'translate-x-1'}`}/></button></div>
+                <button onClick={onResetData} className="w-full border border-red-200 text-red-500 py-2 rounded-lg mb-6 flex justify-center gap-2"><RefreshCw className="w-4 h-4"/> 重置数据</button>
+                <button onClick={onClose} className="w-full bg-slate-800 text-white py-3 rounded-xl font-bold">关闭</button>
+            </div>
+        </div>
+    );
+}
 
 function ModeSelectionModal({ unit, onSelectMode, onOpenManager, onClose }) {
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in-up">
-      <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl relative overflow-hidden">
-        <div className={`absolute top-0 left-0 w-full h-24 bg-gradient-to-br ${unit.themeColor.split(' ')[0].replace('bg-', 'from-').replace('100', '200')} to-white opacity-50`}></div>
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 active:scale-95"><ArrowLeft className="w-6 h-6" /></button>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 animate-fade-in-up">
+      <div className="bg-white rounded-3xl p-6 w-full max-w-md relative overflow-hidden">
+        <div className={`absolute top-0 left-0 w-full h-20 bg-gradient-to-br ${unit.themeColor.split(' ')[0].replace('bg-', 'from-').replace('100', '200')} to-white opacity-50`}></div>
+        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400"><X /></button>
         <div className="relative text-center mb-6 mt-4">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">选择挑战模式</h2>
-          <p className="text-gray-500 text-sm">当前单元: {unit.subtitle}</p>
+            <h2 className="text-2xl font-bold">{unit.title}</h2>
+            <p className="text-xs text-gray-500">{unit.subtitle}</p>
+            <button onClick={onOpenManager} className="mt-2 text-xs bg-white border px-3 py-1 rounded-full flex items-center gap-1 mx-auto"><Settings className="w-3 h-3"/> 管理单词</button>
         </div>
-
-        <div className="relative z-10 mb-6">
-           <button onClick={onOpenManager} className="mx-auto flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-full text-sm font-bold text-gray-600 shadow-sm hover:bg-gray-50 hover:border-gray-300 transition active:scale-95">
-              <Settings className="w-4 h-4" /> 管理本单元单词
-           </button>
-        </div>
-
-        <div className="space-y-4">
-          <button onClick={() => onSelectMode('visual')} className="w-full bg-white border-2 border-indigo-100 hover:border-indigo-400 hover:bg-indigo-50 p-4 rounded-2xl flex items-center gap-4 transition-all group shadow-sm hover:shadow-md active:scale-95 touch-manipulation">
-            <div className="w-12 h-12 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Eye className="w-6 h-6" /></div>
-            <div className="text-left flex-1"><h3 className="font-bold text-gray-800">👀 看图练习</h3><p className="text-xs text-gray-500">看图片记单词，轻松入门</p></div>
-          </button>
-          <button onClick={() => onSelectMode('blind')} className="w-full bg-white border-2 border-rose-100 hover:border-rose-400 hover:bg-rose-50 p-4 rounded-2xl flex items-center gap-4 transition-all group shadow-sm hover:shadow-md active:scale-95 touch-manipulation">
-            <div className="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center group-hover:scale-110 transition-transform"><Ear className="w-6 h-6" /></div>
-            <div className="text-left flex-1"><h3 className="font-bold text-gray-800">👂 听音挑战</h3><p className="text-xs text-gray-500">不看图片，只听声音拼写</p></div>
-            <div className="bg-rose-100 text-rose-600 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide">进阶</div>
-          </button>
-
-          {unit.hasChant && (
-            <button onClick={() => onSelectMode('chant')} className="w-full bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white p-4 rounded-2xl flex items-center gap-4 transition-all group shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-95 touch-manipulation">
-                <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center group-hover:animate-spin"><Music className="w-6 h-6" /></div>
-                <div className="text-left flex-1">
-                    <h3 className="font-bold text-white text-lg">🎵 律动小剧场</h3>
-                    <p className="text-xs text-white/80">跟着节奏，组装魔法句子！</p>
-                </div>
-            </button>
-          )}
+        <div className="space-y-3">
+            <button onClick={() => onSelectMode('visual')} className="w-full border-2 border-indigo-100 bg-indigo-50 p-4 rounded-xl flex items-center gap-4 hover:scale-105 transition"><Eye className="text-indigo-500"/><div className="text-left"><div className="font-bold">看图练习</div><div className="text-xs text-gray-500">轻松记单词</div></div></button>
+            {unit.id !== 5 && <button onClick={() => onSelectMode('dictation')} className="w-full border-2 border-emerald-100 bg-emerald-50 p-4 rounded-xl flex items-center gap-4 hover:scale-105 transition"><PenTool className="text-emerald-500"/><div className="text-left"><div className="font-bold">默写测验</div><div className="text-xs text-gray-500">测试掌握水平</div></div></button>}
+            {unit.hasChant && <button onClick={() => onSelectMode('chant')} className="w-full bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white p-4 rounded-xl flex items-center gap-4 hover:scale-105 transition"><Music/><div className="text-left"><div className="font-bold">律动小剧场</div><div className="text-xs opacity-80">Unit 5 专属</div></div></button>}
         </div>
       </div>
     </div>
   );
 }
 
-// --- 7. 设置弹窗组件 ---
-function SettingsModal({ isOpen, onClose, settings, onUpdateSettings, onResetData }) {
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in-up">
-      <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 active:scale-95">
-          <X className="w-6 h-6" />
-        </button>
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center justify-center gap-2">
-            <Settings className="w-6 h-6" /> 游戏设置
-          </h2>
-        </div>
-        
-        <div className="space-y-4">
-           <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-              <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center text-amber-500">
-                    <Lightbulb className="w-5 h-5" />
-                 </div>
-                 <div className="text-left">
-                    <h3 className="font-bold text-gray-700">拼写提示</h3>
-                    <p className="text-xs text-gray-400">遇到困难时显示灯泡按钮</p>
-                 </div>
-              </div>
-              <button 
-                 onClick={() => onUpdateSettings({ ...settings, enableHints: !settings.enableHints })}
-                 className={`w-14 h-8 rounded-full p-1 transition-colors duration-300 relative ${settings.enableHints ? 'bg-green-500' : 'bg-gray-300'}`}
-              >
-                 <div className={`w-6 h-6 bg-white rounded-full shadow-sm transition-transform duration-300 ${settings.enableHints ? 'translate-x-6' : 'translate-x-0'}`}></div>
-              </button>
-           </div>
-           
-           <div className="p-4 bg-red-50 rounded-xl border border-red-100">
-                <h3 className="font-bold text-red-700 mb-2 text-sm">危险操作</h3>
-                <button 
-                    onClick={onResetData}
-                    className="w-full flex items-center justify-center gap-2 bg-white text-red-500 border border-red-200 py-2 rounded-lg text-sm hover:bg-red-500 hover:text-white transition"
-                >
-                    <RefreshCw className="w-4 h-4"/> 重置所有单词数据
-                </button>
-           </div>
-        </div>
-        
-        <div className="mt-8">
-           <button onClick={onClose} className="w-full bg-slate-800 text-white font-bold py-3 rounded-xl hover:bg-slate-700 transition active:scale-95">
-              完成
-           </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- 8. 主入口 (Dashboard) ---
+// --- 10. 主程序 ---
 
 export default function App() {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [gameMode, setGameMode] = useState(null);
-  
-  // 核心状态：所有单元的单词数据 (从 localStorage 或 默认 加载)
-  const [allWordsData, setAllWordsData] = useState({});
-  const [showManager, setShowManager] = useState(false); // 是否显示单词管理器
-  
-  const [mistakeCount, setMistakeCount] = useState(0);
-  const [mistakeData, setMistakeData] = useState({});
-  const [totalScore, setTotalScore] = useState(0);
-  
-  const [settings, setSettings] = useState(getSettings());
+  const [showManager, setShowManager] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  
-  const [brawlState, setBrawlState] = useState(null);
+  const [showTrophyWall, setShowTrophyWall] = useState(false); 
+  const [allWordsData, setAllWordsData] = useState({});
+  const [stats, setStats] = useState({ totalWords: 0, totalScore: 0, totalMistakes: 0, totalHints: 0, currentStreak: 0, titleClicks: 0 });
+  const [unlockedAchievements, setUnlockedAchievements] = useState([]);
+  const [toast, setToast] = useState({ visible: false, message: '' });
+  const [settings, setSettings] = useState({ enableHints: true });
 
-  // 初始化加载数据
   useEffect(() => {
-    const loadedData = getStoredWordsData();
-    setAllWordsData(loadedData);
+    const storedWords = localStorage.getItem(KEYS.WORDS);
+    if(storedWords) setAllWordsData(JSON.parse(storedWords));
+    else {
+        const normalized = {};
+        Object.keys(DEFAULT_WORDS_DATA).forEach(k => normalized[k] = DEFAULT_WORDS_DATA[k].map(w => ({...w, isActive: w.isActive !== false})));
+        setAllWordsData(normalized);
+    }
+    const storedStats = localStorage.getItem(KEYS.STATS);
+    if(storedStats) setStats(JSON.parse(storedStats));
+    const storedAch = localStorage.getItem(KEYS.ACHIEVEMENTS);
+    if(storedAch) setUnlockedAchievements(JSON.parse(storedAch));
+    const storedSettings = localStorage.getItem(KEYS.SETTINGS);
+    if(storedSettings) setSettings(JSON.parse(storedSettings));
+    checkTimeAchievements();
   }, []);
 
   useEffect(() => {
-    const checkMistakes = () => {
-      const db = getMistakes();
-      setMistakeCount(Object.keys(db).length);
-    };
-    checkMistakes();
-    const interval = setInterval(checkMistakes, 1000);
-    return () => clearInterval(interval);
-  }, []);
+     localStorage.setItem(KEYS.STATS, JSON.stringify(stats));
+     checkAchievements(stats);
+  }, [stats]);
 
-  useEffect(() => {
-    setTotalScore(getGlobalScore());
-  }, [gameMode]); 
-  
-  const handleUpdateSettings = (newSettings) => {
-    setSettings(newSettings);
-    saveSettings(newSettings);
-  };
-  
-  const handleResetData = () => {
-      if(window.confirm("这将重置所有单元的单词到初始状态，您添加的单词将丢失！确定吗？")) {
-          localStorage.removeItem(WORDS_DATA_KEY);
-          // 重新加载页面或强制刷新状态
-          window.location.reload();
+  const checkAchievements = (currentStats) => {
+      let newUnlocks = [];
+      ACHIEVEMENTS_DATA.forEach(ach => {
+          if (!unlockedAchievements.includes(ach.id) && ach.condition(currentStats)) {
+              newUnlocks.push(ach);
+          }
+      });
+      if (newUnlocks.length > 0) {
+          const newIds = newUnlocks.map(a => a.id);
+          const updated = [...unlockedAchievements, ...newIds];
+          setUnlockedAchievements(updated);
+          localStorage.setItem(KEYS.ACHIEVEMENTS, JSON.stringify(updated));
+          showToast(`🏆 解锁成就：${newUnlocks[0].title}！`);
       }
-  }
-
-  // 更新单词数据 (CRUD)
-  const handleUpdateUnitWords = (unitId, newWordsList) => {
-      const newData = { ...allWordsData, [unitId]: newWordsList };
-      setAllWordsData(newData);
-      saveWordsData(newData);
   };
 
-  const handleUnitClick = (unit) => {
-    setSelectedUnit(unit);
-    setGameMode(null);
+  const checkTimeAchievements = () => { setStats(s => ({...s})); };
+  const showToast = (msg) => { setToast({ visible: true, message: msg }); setTimeout(() => setToast({ visible: false, message: '' }), 3000); };
+
+  const handleUpdateStats = (type, usedHint) => {
+      setStats(prev => {
+          const next = { ...prev };
+          if (type === 'win') {
+              next.totalWords += 1;
+              next.totalScore = getGlobalScore(); // Sync score
+              if (!usedHint) next.currentStreak += 1;
+              else next.currentStreak = 0;
+          } else if (type === 'mistake') {
+              next.totalMistakes += 1;
+              next.currentStreak = 0;
+          } else if (type === 'hint') {
+              next.totalHints += 1;
+              next.currentStreak = 0;
+          }
+          return next;
+      });
   };
 
-  const startNotebookMode = () => {
-    const db = getMistakes();
-    if (Object.keys(db).length === 0) {
-      alert("太棒了！你暂时没有错题需要复习哦！");
-      return;
-    }
-    setMistakeData(db);
-    setGameMode('notebook');
-  };
-  
-  const handleBrawlClick = () => {
-    const saved = getBrawlProgress();
-    if (saved) {
-      if(window.confirm(`发现上次大乱斗进度（第 ${saved.currentIndex + 1} 关），是否继续？\n点击【确定】继续，点击【取消】重新开始`)) {
-        setBrawlState(saved);
-        setGameMode('brawl');
-      } else {
-        startNewBrawl();
+  const handleTitleClick = () => { setStats(s => ({ ...s, titleClicks: (s.titleClicks || 0) + 1 })); };
+
+  const renderContent = () => {
+      if (gameMode === 'chant') return <SentenceGameScreen onBack={() => setGameMode(null)} settings={settings} onUpdateStats={handleUpdateStats} />;
+      if (gameMode && selectedUnit) {
+          const words = allWordsData[selectedUnit.id] || [];
+          return <GameScreen words={words} mode={gameMode} onBack={() => setGameMode(null)} settings={settings} onUpdateStats={handleUpdateStats} />;
       }
-    } else {
-      startNewBrawl();
-    }
+      return (
+          <>
+             <div className="fixed top-4 left-4 z-50">
+                <button onClick={() => setShowTrophyWall(true)} className="flex items-center gap-2 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full font-bold shadow-sm border-2 border-yellow-200 hover:scale-105 transition">
+                    <Trophy className="w-5 h-5 fill-yellow-500" />
+                    <span>{unlockedAchievements.length}</span>
+                </button>
+             </div>
+             <div className="fixed top-4 right-4 z-50"><button onClick={() => setShowSettings(true)} className="bg-white text-slate-500 p-2 rounded-full shadow-sm border"><Settings/></button></div>
+             <header className="max-w-4xl mx-auto mb-8 pt-16 text-center"><h1 onClick={handleTitleClick} className="text-3xl md:text-4xl font-extrabold text-sky-600 mb-2 flex items-center justify-center gap-3 cursor-pointer select-none active:scale-95 transition"><BookOpen className="w-10 h-10" /> 英语单词大冒险</h1><p className="text-sky-800 text-lg">三年级上册 (Book 3A)</p></header>
+             <main className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
+                {UNIT_METADATA.map(unit => (
+                    <div key={unit.id} onClick={() => setSelectedUnit(unit)} className={`group cursor-pointer rounded-3xl p-6 shadow-lg border-b-8 transition-all hover:-translate-y-2 hover:shadow-xl bg-white ${unit.themeColor.split(' ')[1]} active:scale-95`}>
+                        <div className="flex justify-between items-start mb-4">
+                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${unit.themeColor.split(' ')[0]} ${unit.themeColor.split(' ')[2]}`}><unit.icon className="w-7 h-7"/></div>
+                            <span className="text-xs font-bold bg-white/50 text-gray-600 px-2 py-1 rounded-lg">第 {unit.id} 单元</span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-800">{unit.title}</h3>
+                        <p className="text-gray-500 text-sm font-medium mb-4">{unit.subtitle}</p>
+                        <div className="flex justify-between items-center mt-6 pt-4 border-t border-black/5">
+                            <div className="flex gap-1 text-xs font-bold text-gray-400"><Star className="w-4 h-4 text-yellow-400 fill-yellow-400"/> {(allWordsData[unit.id] || []).filter(w => w.isActive !== false).length} 词</div>
+                            <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-gray-600"/>
+                        </div>
+                    </div>
+                ))}
+             </main>
+          </>
+      );
   };
-
-  const startNewBrawl = () => {
-    // 大乱斗收集所有单元的所有 ACTIVE 单词
-    const allWords = Object.values(allWordsData).flat().filter(w => w.isActive !== false);
-    
-    if (allWords.length === 0) {
-        alert("没有可用的单词进行大乱斗，请检查单词管理设置。");
-        return;
-    }
-
-    const shuffled = shuffleArray(allWords);
-    
-    const newState = {
-      words: shuffled,
-      currentIndex: 0,
-      score: 0
-    };
-    
-    saveBrawlProgress(newState);
-    setBrawlState(newState);
-    setGameMode('brawl');
-  };
-
-  const handleBack = () => {
-    setSelectedUnit(null);
-    setGameMode(null);
-    setBrawlState(null);
-    setShowManager(false);
-  };
-
-  if (gameMode === 'chant') {
-      return <SentenceGameScreen onBack={handleBack} settings={settings} />;
-  }
-
-  if (gameMode === 'notebook') {
-    return <GameScreen words={mistakeData} mode="notebook" isMistakeMode={true} onBack={handleBack} settings={settings} />;
-  }
-  
-  if (gameMode === 'brawl' && brawlState) {
-    return (
-      <GameScreen 
-        words={brawlState.words} 
-        mode="brawl" 
-        onBack={handleBack} 
-        initialIndex={brawlState.currentIndex}
-        initialScore={brawlState.score}
-        preShuffled={true} 
-        onProgressUpdate={saveBrawlProgress}
-        settings={settings}
-      />
-    );
-  }
-
-  if (selectedUnit && gameMode) {
-    // 获取当前单元的动态单词列表
-    const currentUnitWords = allWordsData[selectedUnit.id] || [];
-    // 注入图标（可选，如果需要的话，但主要逻辑是取 allWordsData）
-    // GameScreen 内部会负责过滤 !isActive 的单词
-    return <GameScreen words={currentUnitWords} mode={gameMode} onBack={handleBack} settings={settings} />;
-  }
 
   return (
-    <div className="min-h-[100dvh] w-full overflow-x-hidden overscroll-none select-none bg-sky-50 p-6 pb-20 font-sans">
-      <SettingsModal 
-        isOpen={showSettings} 
-        onClose={() => setShowSettings(false)} 
-        settings={settings}
-        onUpdateSettings={handleUpdateSettings}
-        onResetData={handleResetData}
-      />
-      
-      {showManager && selectedUnit && (
-          <WordManagerModal 
-             unit={selectedUnit}
-             words={allWordsData[selectedUnit.id] || []}
-             onUpdateWords={handleUpdateUnitWords}
-             onClose={() => setShowManager(false)}
-          />
-      )}
-
-      {selectedUnit && !gameMode && !showManager && (
-        <ModeSelectionModal
-          unit={selectedUnit}
-          onSelectMode={setGameMode}
-          onOpenManager={() => setShowManager(true)}
-          onClose={() => setSelectedUnit(null)}
-        />
-      )}
-
-      <div className="fixed top-4 left-4 z-50 md:absolute">
-          <div className="flex items-center gap-2 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full font-bold shadow-sm border-2 border-yellow-200 cursor-help" title="这是你赢得的所有奖杯！">
-              <Trophy className="w-5 h-5 fill-yellow-500 text-yellow-600" />
-              <span>{totalScore}</span>
-          </div>
-      </div>
-      
-      <div className="fixed top-4 right-4 z-50 md:absolute">
-          <button 
-             onClick={() => setShowSettings(true)}
-             className="bg-white text-slate-500 p-2 rounded-full shadow-sm border hover:bg-slate-50 transition active:scale-95"
-          >
-              <Settings className="w-6 h-6" />
-          </button>
-      </div>
-
-      <header className="max-w-4xl mx-auto mb-8 relative pt-12 md:pt-0">
-        <div className="text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold text-sky-600 mb-2 flex items-center justify-center gap-3">
-            <BookOpen className="w-10 h-10" />
-            英语单词大冒险
-          </h1>
-          <p className="text-sky-800 text-lg">三年级上册 (Book 3A)</p>
-        </div>
-
-        <div className="absolute top-0 right-14 hidden md:block">
-          <button
-            onClick={startNotebookMode}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold shadow-sm transition-all
-              ${mistakeCount > 0 ? 'bg-white text-red-500 hover:shadow-md hover:scale-105' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}
-             `}
-          >
-            <BookX className="w-5 h-5" />
-            📕 单词加油站
-            {mistakeCount > 0 && (
-              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{mistakeCount}</span>
-            )}
-          </button>
-        </div>
-      </header>
-
-      <div className="md:hidden mb-6 flex justify-center">
-        <button
-          onClick={startNotebookMode}
-          className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-2xl font-bold shadow-sm transition-all border-2 active:scale-95
-              ${mistakeCount > 0 ? 'bg-white border-red-100 text-red-500' : 'bg-gray-50 border-gray-100 text-gray-400'}
-             `}
-        >
-          <BookX className="w-5 h-5" />
-          复习错题 ({mistakeCount})
-        </button>
-      </div>
-      
-      <div className="max-w-4xl mx-auto mb-8 animate-fade-in-up">
-        <div 
-           onClick={handleBrawlClick}
-           className="bg-gradient-to-r from-violet-600 to-indigo-600 rounded-3xl p-6 md:p-8 text-white shadow-xl shadow-indigo-200 cursor-pointer transform transition hover:scale-[1.02] hover:shadow-2xl relative overflow-hidden group active:scale-95"
-        >
-           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
-           <div className="absolute bottom-0 left-0 w-48 h-48 bg-purple-500/20 rounded-full blur-2xl -ml-10 -mb-10 pointer-events-none"></div>
-           
-           <div className="flex items-center justify-between relative z-10">
-              <div className="flex-1">
-                 <div className="flex items-center gap-2 mb-2">
-                    <span className="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded uppercase tracking-wider">New</span>
-                    <span className="flex items-center gap-1 text-violet-200 text-xs font-medium"><Save className="w-3 h-3"/> 支持自动存档</span>
-                 </div>
-                 <h2 className="text-2xl md:text-3xl font-extrabold mb-2 flex items-center gap-2">
-                    <Gamepad2 className="w-8 h-8 md:w-10 md:h-10 text-yellow-300" />
-                    全明星大乱斗
-                 </h2>
-                 <p className="text-indigo-100 opacity-90 max-w-lg text-sm md:text-base">
-                    挑战所有勾选的单词！混合乱序排列，考验真实力。
-                 </p>
-              </div>
-              <div className="hidden md:flex items-center justify-center bg-white/20 w-16 h-16 rounded-full group-hover:bg-white/30 transition-colors backdrop-blur-sm">
-                 <Play className="w-8 h-8 text-white fill-white" />
-              </div>
-           </div>
-        </div>
-      </div>
-
-      <main className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {UNIT_METADATA.map((unit) => (
-          <div
-            key={unit.id}
-            onClick={() => handleUnitClick(unit)}
-            className={`
-              group cursor-pointer rounded-3xl p-6 shadow-lg border-b-8 transition-all hover:-translate-y-2 hover:shadow-xl relative
-              bg-white ${unit.themeColor.split(' ')[1]} active:scale-95
-            `}
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div className={`
-                w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner
-                ${unit.themeColor.split(' ')[0]} 
-                ${unit.themeColor.split(' ')[2]}
-              `}>
-                <unit.icon className="w-7 h-7" />
-              </div>
-              <span className="text-xs font-bold bg-white/50 text-gray-600 px-2 py-1 rounded-lg">
-                第 {unit.id} 单元
-              </span>
-            </div>
-
-            <h3 className="text-xl font-bold text-gray-800 mb-1 group-hover:text-current transition-colors">
-              {unit.title.split(' ')[2] ? unit.title.split(' ')[2] : unit.title.replace(/Unit \d /, '')}
-            </h3>
-            <p className="text-gray-500 text-sm font-medium mb-4">{unit.subtitle}</p>
-
-            <div className="flex items-center justify-between mt-6 pt-4 border-t border-black/5">
-              <div className="flex gap-1">
-                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                <span className="text-xs font-bold text-gray-400">
-                    {/* 显示该单元激活的单词数量 */}
-                    {(allWordsData[unit.id] || []).filter(w => w.isActive !== false).length} 词
-                </span>
-              </div>
-              <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-gray-300 group-hover:text-current group-hover:bg-gray-50 transition-colors">
-                <ArrowRight className="w-5 h-5" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </main>
-
-      <footer className="max-w-4xl mx-auto mt-12 text-center text-sky-300 text-sm">
-        V6.6 - 支持自定义单词 & 内容更新
-      </footer>
+    <div className="min-h-[100dvh] w-full bg-sky-50 font-sans pb-20">
+       {renderContent()}
+       <ToastNotification isVisible={toast.visible} message={toast.message} onClose={() => setToast({ ...toast, visible: false })} />
+       <TrophyWallModal isOpen={showTrophyWall} onClose={() => setShowTrophyWall(false)} unlockedIds={unlockedAchievements} />
+       <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} settings={settings} onUpdateSettings={(s) => {setSettings(s); localStorage.setItem(KEYS.SETTINGS, JSON.stringify(s))}} onResetData={() => { localStorage.clear(); window.location.reload(); }} />
+       {selectedUnit && !gameMode && !showManager && <ModeSelectionModal unit={selectedUnit} onSelectMode={setGameMode} onOpenManager={() => setShowManager(true)} onClose={() => setSelectedUnit(null)} />}
+       {showManager && selectedUnit && <WordManagerModal unit={selectedUnit} words={allWordsData[selectedUnit.id] || []} onUpdateWords={(uid, w) => { const n = {...allWordsData, [uid]: w}; setAllWordsData(n); localStorage.setItem(KEYS.WORDS, JSON.stringify(n)); }} onClose={() => setShowManager(false)} />}
     </div>
   );
 }
