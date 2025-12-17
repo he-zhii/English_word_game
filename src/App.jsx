@@ -11,7 +11,7 @@ import {
 
 // --- 1. 全局配置与工具 ---
 
-const STORAGE_VERSION = 'v8.7'; // 升级版本号，重置数据结构以修复潜在的积分Bug
+const STORAGE_VERSION = 'v8.7'; 
 const KEYS = {
   WORDS: `spelling_words_${STORAGE_VERSION}`,
   MISTAKES: `spelling_mistakes_${STORAGE_VERSION}`,
@@ -47,14 +47,14 @@ const getRandomEmoji = () => RANDOM_EMOJIS[Math.floor(Math.random() * RANDOM_EMO
 
 // --- 2. 核心功能引擎 ---
 
-// [优化] 愉悦的解锁音效 (Success Chime)
+// [优化] 愉悦的解锁音效 (音量调低，防止炸麦)
 const playAchievementSound = () => {
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     if (!AudioContext) return;
     const ctx = new AudioContext();
     
-    // 播放一个大三和弦 (C Major: C5, E5, G5)
+    // C Major 和弦
     const notes = [523.25, 659.25, 783.99]; 
     const now = ctx.currentTime;
 
@@ -62,13 +62,12 @@ const playAchievementSound = () => {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         
-        // 使用正弦波，听起来更圆润清脆
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, now + i * 0.1); // 稍微错开时间，形成琶音效果
+        osc.frequency.setValueAtTime(freq, now + i * 0.1);
         
-        // 音量包络：快速冲击，缓慢衰减
+        // [修改] 音量从 0.3 降低到 0.1
         gain.gain.setValueAtTime(0, now + i * 0.1);
-        gain.gain.linearRampToValueAtTime(0.3, now + i * 0.1 + 0.05);
+        gain.gain.linearRampToValueAtTime(0.1, now + i * 0.1 + 0.05);
         gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.1 + 1.5);
         
         osc.connect(gain);
@@ -77,7 +76,15 @@ const playAchievementSound = () => {
         osc.start(now + i * 0.1);
         osc.stop(now + i * 0.1 + 1.5);
     });
-  } catch (e) {}
+
+    // [关键修复] 播放完后关闭 Context，防止移动端达到上限导致白屏
+    setTimeout(() => {
+        if (ctx.state !== 'closed') ctx.close();
+    }, 2000);
+
+  } catch (e) {
+      console.warn("Audio play failed", e);
+  }
 };
 
 // 混合声音引擎 (强制美音)
@@ -85,68 +92,53 @@ const playWordAudio = async (word) => {
     if (!word) return;
     const cleanWord = word.toLowerCase().trim().replace(/[^a-z]/g, '');
     
-    // 1. 尝试 API (优先找 US 音源)
+    // 1. 尝试 API
     try {
         const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanWord}`);
         if (response.ok) {
             const data = await response.json();
-            // 优先过滤出 -us.mp3 结尾的音频
             let audioUrl = data[0]?.phonetics?.find(p => p.audio && p.audio.includes('-us.mp3'))?.audio;
-            // 如果没有 US 特定的，就拿第一个可用的
             if (!audioUrl) {
                 audioUrl = data[0]?.phonetics?.find(p => p.audio && p.audio !== '')?.audio;
             }
-            
             if (audioUrl) {
                 const audio = new Audio(audioUrl);
-                audio.play();
+                // 捕获播放错误
+                audio.play().catch(e => console.log("Audio play prevented", e));
                 return;
             }
         }
     } catch (e) {}
 
-    // 2. TTS 降级 (强制 en-US)
+    // 2. TTS 降级
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(word);
         utterance.lang = 'en-US'; 
         utterance.rate = 0.9;
-        
         const voices = window.speechSynthesis.getVoices();
-        // 严格筛选美音
         const usVoice = voices.find(v => v.lang === 'en-US' && !v.name.includes('UK') && !v.name.includes('GB'));
         if (usVoice) utterance.voice = usVoice;
-        
         window.speechSynthesis.speak(utterance);
     }
 };
 
 // --- 3. 数据定义 ---
 
-// 18个成就设计
 const ACHIEVEMENTS_DATA = [
-  // 🌱 起步阶段
   { id: 'first_steps', title: '初出茅庐', desc: '累计拼对 5 个单词', icon: '🌱', type: 'milestone', condition: (s) => s.totalWords >= 5 },
   { id: 'getting_started', title: '渐入佳境', desc: '累计拼对 25 个单词', icon: '🚲', type: 'milestone', condition: (s) => s.totalWords >= 25 },
   { id: 'half_hundred', title: '半途而不废', desc: '累计拼对 50 个单词', icon: '🏃', type: 'milestone', condition: (s) => s.totalWords >= 50 },
-  
-  // 🏆 进阶里程碑
   { id: 'vocabulary_king', title: '百词斩', desc: '累计拼对 100 个单词', icon: '⚔️', type: 'milestone', condition: (s) => s.totalWords >= 100 },
   { id: 'word_master', title: '登峰造极', desc: '累计拼对 300 个单词', icon: '👑', type: 'milestone', condition: (s) => s.totalWords >= 300 },
   { id: 'score_tycoon', title: '积分大亨', desc: '总积分达到 1000 分', icon: '💰', type: 'milestone', condition: (s) => s.totalScore >= 1000 },
-
-  // 🔥 连胜挑战
   { id: 'streak_5', title: '连对先锋', desc: '连续答对 5 次不失误', icon: '🔥', type: 'streak', condition: (s) => s.currentStreak >= 5 },
   { id: 'streak_20', title: '心流模式', desc: '连续答对 20 次不失误', icon: '🌊', type: 'streak', condition: (s) => s.currentStreak >= 20 },
   { id: 'streak_50', title: '独孤求败', desc: '连续答对 50 次不失误', icon: '🐉', type: 'streak', condition: (s) => s.currentStreak >= 50 },
-
-  // 🤡 趣味与坚持
   { id: 'shake_master', title: '手滑大王', desc: '累计拼错 20 次', icon: '🌀', type: 'funny', condition: (s) => s.totalMistakes >= 20 },
   { id: 'never_give_up', title: '不屈的灵魂', desc: '累计拼错 100 次', icon: '❤️‍🩹', type: 'funny', condition: (s) => s.totalMistakes >= 100 },
   { id: 'curious_baby', title: '点读机', desc: '累计使用提示 20 次', icon: '💡', type: 'funny', condition: (s) => s.totalHints >= 20 },
   { id: 'encyclopedia', title: '百科全书', desc: '累计使用提示 100 次', icon: '📖', type: 'funny', condition: (s) => s.totalHints >= 100 },
-
-  // 🥚 时间与隐藏彩蛋 (UI上隐藏条件)
   { id: 'early_bird', title: '早起的鸟儿', desc: '在 6:00-8:00 间学习', icon: '🌅', type: 'hidden', condition: () => { const h = new Date().getHours(); return h >= 6 && h < 8; } },
   { id: 'afternoon_tea', title: '勤奋的午后', desc: '在 13:00-15:00 间学习', icon: '☕', type: 'hidden', condition: () => { const h = new Date().getHours(); return h >= 13 && h < 15; } },
   { id: 'night_owl', title: '夜深人静', desc: '在 22:00 之后学习', icon: '🦉', type: 'hidden', condition: () => { const h = new Date().getHours(); return h >= 22; } },
@@ -161,7 +153,6 @@ const CHANT_DATA = [
   { id: "c4", sentence: "Orange and red, jump up and down.", cn: "橙色和红色，跳上跳下。", emoji: "🟧🔴🦘", color: "bg-orange-100 text-orange-600", phrase: { word: "jump up and down", cn: "跳上跳下" } }
 ];
 
-// 标题全中文优化
 const UNIT_METADATA = [
   { id: 1, title: "身体部位", subtitle: "Body Parts", themeColor: "bg-rose-100 border-rose-300 text-rose-600", icon: Users },
   { id: 2, title: "家庭关系", subtitle: "Family", themeColor: "bg-orange-100 border-orange-300 text-orange-600", icon: Home },
@@ -343,7 +334,6 @@ const getStoredWordsData = () => {
 
 const saveWordsData = (data) => localStorage.setItem(WORDS_DATA_KEY, JSON.stringify(data));
 
-// [Bug Fix] 增强的积分读取逻辑，防止 NaN
 const getGlobalScore = () => {
   try { 
       const val = parseInt(localStorage.getItem(SCORE_KEY) || '0', 10);
@@ -424,27 +414,25 @@ function ToastNotification({ message, isVisible, onClose }) {
   );
 }
 
-// --- 6. 组件: 奖杯墙 (Trophy Wall) [烟花版] ---
+// --- 6. 组件: 奖杯墙 (Trophy Wall) ---
 function TrophyWallModal({ isOpen, onClose, unlockedIds }) {
   const [particles, setParticles] = useState([]);
 
   const createParticles = (x, y) => {
     const newParticles = [];
-    // 增加粒子数量到 40 个，让烟花更盛大
     for (let i = 0; i < 40; i++) {
         newParticles.push({
             id: Math.random(),
             x, y,
             angle: Math.random() * 360,
-            // 增加速度范围，让爆炸范围更大
             speed: Math.random() * 10 + 3,
             color: ['#FBBF24', '#F472B6', '#60A5FA', '#34D399', '#A78BFA', '#F87171'][Math.floor(Math.random() * 6)],
             life: 1,
-            decay: Math.random() * 0.02 + 0.01 // 随机衰减，更有层次感
+            decay: Math.random() * 0.02 + 0.01 
         });
     }
     setParticles(prev => [...prev, ...newParticles]);
-    playAchievementSound(); // 触发优美的音效
+    playAchievementSound(); 
   };
 
   useEffect(() => {
@@ -453,7 +441,7 @@ function TrophyWallModal({ isOpen, onClose, unlockedIds }) {
             setParticles(prev => prev.map(p => ({
                 ...p, 
                 x: p.x + Math.cos(p.angle * Math.PI / 180) * p.speed, 
-                y: p.y + Math.sin(p.angle * Math.PI / 180) * p.speed + 1, // 增加一点重力下坠
+                y: p.y + Math.sin(p.angle * Math.PI / 180) * p.speed + 1, 
                 life: p.life - p.decay 
             })).filter(p => p.life > 0));
         });
@@ -472,14 +460,13 @@ function TrophyWallModal({ isOpen, onClose, unlockedIds }) {
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[90] flex items-center justify-center p-4 animate-fade-in-up">
-      {/* 粒子层 (Canvas or DOM) */}
       {particles.map(p => (
           <div key={p.id} className="fixed w-2 h-2 rounded-full pointer-events-none z-[100]" 
                style={{ 
                    left: p.x, top: p.y, 
                    backgroundColor: p.color, 
                    opacity: p.life, 
-                   transform: `scale(${p.life * 2})` // 粒子随生命周期缩小
+                   transform: `scale(${p.life * 2})` 
                }} />
       ))}
 
@@ -496,26 +483,11 @@ function TrophyWallModal({ isOpen, onClose, unlockedIds }) {
             {ACHIEVEMENTS_DATA.map((item) => {
                const isUnlocked = unlockedIds.includes(item.id);
                const isSecret = item.type === 'hidden' && !isUnlocked;
-               
                return (
-                  <div 
-                    key={item.id} 
-                    onClick={(e) => handleTrophyClick(e, isUnlocked)}
-                    className={`
-                        relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-300
-                        ${isUnlocked 
-                            ? 'bg-slate-800/80 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)] hover:border-yellow-400 hover:scale-105 cursor-pointer' 
-                            : 'bg-slate-800/30 border-slate-800 grayscale opacity-50'
-                        }
-                    `}
-                  >
-                     {/* 自动浮动动画 */}
-                     <div className={`text-4xl mb-3 transition-transform ${isUnlocked ? 'animate-float' : ''}`}>
-                        {isSecret ? '🔒' : item.icon}
-                     </div>
-                     <h3 className={`font-bold text-center text-sm ${isUnlocked ? 'text-yellow-100' : 'text-slate-600'}`}>
-                        {isSecret ? '？？？' : item.title}
-                     </h3>
+                  <div key={item.id} onClick={(e) => handleTrophyClick(e, isUnlocked)}
+                    className={`relative flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all duration-300 ${isUnlocked ? 'bg-slate-800/80 border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.1)] hover:border-yellow-400 hover:scale-105 cursor-pointer' : 'bg-slate-800/30 border-slate-800 grayscale opacity-50'}`}>
+                     <div className={`text-4xl mb-3 transition-transform ${isUnlocked ? 'animate-float' : ''}`}>{isSecret ? '🔒' : item.icon}</div>
+                     <h3 className={`font-bold text-center text-sm ${isUnlocked ? 'text-yellow-100' : 'text-slate-600'}`}>{isSecret ? '？？？' : item.title}</h3>
                      {!isSecret && <p className="text-[10px] text-slate-400 text-center mt-1">{item.desc}</p>}
                      {isUnlocked && <Sparkles className="absolute top-2 right-2 w-3 h-3 text-yellow-400 animate-pulse" />}
                   </div>
@@ -523,10 +495,7 @@ function TrophyWallModal({ isOpen, onClose, unlockedIds }) {
             })}
          </div>
       </div>
-      <style>{`
-        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
-        .animate-float { animation: float 3s ease-in-out infinite; }
-      `}</style>
+      <style>{`@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } } .animate-float { animation: float 3s ease-in-out infinite; }`}</style>
     </div>
   );
 }
@@ -723,13 +692,15 @@ function GameScreen({
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (!audioPlayedRef.current && currentWordObj && !graduatedAnimation) {
+      // [修复] 默写模式下，开局不自动播放英语
+      const isDictation = mode === 'dictation';
+      if (!audioPlayedRef.current && currentWordObj && !graduatedAnimation && !isDictation) {
         playWordAudio(currentWordObj.word);
         audioPlayedRef.current = true;
       }
     }, 500);
     return () => { clearTimeout(timer); window.speechSynthesis.cancel(); };
-  }, [currentIndex, currentWordObj, graduatedAnimation]);
+  }, [currentIndex, currentWordObj, graduatedAnimation, mode]);
 
   const initWord = (wordObj) => {
     const phrase = wordObj.word;
@@ -750,32 +721,25 @@ function GameScreen({
     if (newPlaced.every(l => l !== null)) checkAnswer(newPlaced);
   };
 
-  // [纠错修复版] 智能提示: 强制纠错
+  // 智能提示: 强制纠错
   const handleSmartHint = () => {
     if (isCompleted) return;
     const targetWord = currentWordObj.word;
     let indexToFix = -1;
-    
-    // 1. 优先找空格
     indexToFix = placedLetters.findIndex(l => l === null);
-    // 2. 如果全满，找错位
-    if (indexToFix === -1) {
-       indexToFix = placedLetters.findIndex((l, i) => l && l.char !== targetWord[i]);
-    }
+    if (indexToFix === -1) indexToFix = placedLetters.findIndex((l, i) => l && l.char !== targetWord[i]);
     if (indexToFix === -1) return;
 
     const correctChar = targetWord[indexToFix];
     let tempPlaced = [...placedLetters];
     let tempShuffled = [...shuffledLetters];
 
-    // 移除占位错误
     if (tempPlaced[indexToFix] !== null) {
         const wrongLetter = tempPlaced[indexToFix];
         tempPlaced[indexToFix] = null;
         tempShuffled = tempShuffled.map(l => l.id === wrongLetter.id ? { ...l, isUsed: false } : l);
     }
 
-    // 填入正确
     const letterToAutoFill = tempShuffled.find(l => l.char === correctChar && !l.isUsed);
     if (letterToAutoFill) {
         tempPlaced[indexToFix] = letterToAutoFill;
@@ -798,7 +762,7 @@ function GameScreen({
     if (userPhrase === currentWordObj.word) {
       setIsCompleted(true);
       playWordAudio(currentWordObj.word);
-      playAchievementSound(); // 单词拼写成功播放音效
+      playAchievementSound(); 
       if (isMistakeMode) {
          const res = updateMistakeProgress(currentWordObj.word, true);
          if(res === 'graduated') setGraduatedAnimation(true);
@@ -858,7 +822,7 @@ function GameScreen({
                       <div className="flex flex-col items-center animate-pulse cursor-pointer" onClick={handleHintTrigger}>
                          <div className="text-6xl mb-2 text-slate-200"><Keyboard className="w-20 h-20 mx-auto"/></div>
                          <h2 className={`text-2xl font-bold tracking-widest ${getColor(currentIndex)}`}>{currentWordObj.cn}</h2>
-                         {isDictation && <p className="text-xs text-slate-400 mt-2">(看中文默写)</p>}
+                         {isDictation && <p className="text-xs text-slate-400 mt-2">(看中文默写，点击图标提示)</p>}
                       </div>
                    )}
                 </div>
@@ -974,7 +938,6 @@ export default function App() {
     const storedStats = localStorage.getItem(KEYS.STATS);
     if(storedStats) setStats(JSON.parse(storedStats));
     else {
-        // [BugFix] 初始化时也同步一次 Score
         setStats(prev => ({ ...prev, totalScore: getGlobalScore() }));
     }
     const storedAch = localStorage.getItem(KEYS.ACHIEVEMENTS);
