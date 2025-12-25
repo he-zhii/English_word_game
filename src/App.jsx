@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Volume2, Trophy, ArrowRight, Star, Home, ArrowLeft,
@@ -35,7 +34,7 @@ class ErrorBoundary extends React.Component {
 
 // --- 1. 全局配置 ---
 
-const STORAGE_VERSION = 'v11.3'; // 升级版本号：UI尺寸优化
+const STORAGE_VERSION = 'v12.0'; // 升级版本号：强力纠错版
 const KEYS = {
   WORDS: `spelling_words_${STORAGE_VERSION}`,
   MISTAKES: `spelling_mistakes_${STORAGE_VERSION}`,
@@ -103,12 +102,11 @@ const playSuccessChime = () => {
 // 音频缓存池
 const audioCache = new Map();
 
-// 朗读引擎：缓存 -> 有道美音 -> DictionaryAPI美音 -> TTS美音
+// 朗读引擎
 const playWordAudio = async (word) => {
     if (!word) return;
     const cleanWord = word.toLowerCase().trim();
 
-    // 1. 检查缓存
     if (audioCache.has(cleanWord)) {
         const cachedUrl = audioCache.get(cleanWord);
         const audio = new Audio(cachedUrl);
@@ -116,7 +114,6 @@ const playWordAudio = async (word) => {
         return;
     }
 
-    // 2. 有道词典 API
     const youdaoUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(cleanWord)}&type=0`;
     
     const tryYoudao = new Promise((resolve, reject) => {
@@ -136,7 +133,6 @@ const playWordAudio = async (word) => {
         return; 
     } catch (e) {}
 
-    // 3. DictionaryAPI
     try {
         const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanWord}`);
         if (response.ok) {
@@ -151,7 +147,6 @@ const playWordAudio = async (word) => {
         }
     } catch (e) {}
 
-    // 4. TTS 兜底
     if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel(); 
         const utterance = new SpeechSynthesisUtterance(word);
@@ -805,30 +800,69 @@ function GameScreen({
     if (newPlaced.every(l => l !== null)) checkAnswer(newPlaced);
   };
 
+  // [V12.0 重写] 智能提示: 霸道纠错版
   const handleSmartHint = () => {
     if (isCompleted) return;
     const targetWord = currentWordObj.word;
-    let indexToFix = -1;
-    indexToFix = placedLetters.findIndex(l => l === null);
-    if (indexToFix === -1) indexToFix = placedLetters.findIndex((l, i) => l && l.char !== targetWord[i]);
-    if (indexToFix === -1) return;
-
-    const correctChar = targetWord[indexToFix];
-    let tempPlaced = [...placedLetters];
-    let tempShuffled = [...shuffledLetters];
-
-    if (tempPlaced[indexToFix] !== null) {
-        const wrongLetter = tempPlaced[indexToFix];
-        tempPlaced[indexToFix] = null;
-        tempShuffled = tempShuffled.map(l => l.id === wrongLetter.id ? { ...l, isUsed: false } : l);
+    
+    // 1. 全局扫描：找到第一个错误（空位或错字）
+    let errorIndex = -1;
+    for (let i = 0; i < targetWord.length; i++) {
+        const targetChar = targetWord[i];
+        if (targetChar === ' ') continue;
+        const currentPlaced = placedLetters[i];
+        // 关键判定：只要不对（哪怕是有字），就是错误点
+        if (!currentPlaced || currentPlaced.char !== targetChar) {
+            errorIndex = i;
+            break;
+        }
     }
 
-    const letterToAutoFill = tempShuffled.find(l => l.char === correctChar && !l.isUsed);
-    if (letterToAutoFill) {
-        tempPlaced[indexToFix] = letterToAutoFill;
-        tempShuffled = tempShuffled.map(l => l.id === letterToAutoFill.id ? { ...l, isUsed: true } : l);
-        setPlacedLetters(tempPlaced); setShuffledLetters(tempShuffled);
-        if (tempPlaced.every(l => l !== null)) checkAnswer(tempPlaced);
+    if (errorIndex === -1) return; // 单词已正确
+
+    const correctChar = targetWord[errorIndex];
+    let nextPlaced = [...placedLetters];
+    let nextShuffled = [...shuffledLetters];
+
+    // 2. 清理现场：如果该位置有错误的字母，踢回字母库
+    if (nextPlaced[errorIndex]) {
+        const letterToRemove = nextPlaced[errorIndex];
+        nextPlaced[errorIndex] = null;
+        // 在库中标记为未使用
+        nextShuffled = nextShuffled.map(l => l.id === letterToRemove.id ? { ...l, isUsed: false } : l);
+    }
+
+    // 3. 搜捕正确字母
+    // 优先：从字母库找
+    let letterToPlace = nextShuffled.find(l => l.char === correctChar && !l.isUsed);
+
+    // 备选：从已填的（错误）位置抢
+    if (!letterToPlace) {
+        // 找一个虽然字母对，但位置不对的倒霉蛋 (位置 > 当前错误点)
+        const stolenIndex = nextPlaced.findIndex((l, idx) => 
+            l && l.char === correctChar && idx > errorIndex
+        );
+
+        if (stolenIndex !== -1) {
+            letterToPlace = nextPlaced[stolenIndex];
+            nextPlaced[stolenIndex] = null; // 把它原来的位置腾空
+            // 注意：isUsed 保持 true，因为我们只是挪窝
+        }
+    }
+
+    // 4. 强制填入
+    if (letterToPlace) {
+        nextPlaced[errorIndex] = letterToPlace;
+        // 确保标记为已用
+        nextShuffled = nextShuffled.map(l => l.id === letterToPlace.id ? { ...l, isUsed: true } : l);
+        
+        setPlacedLetters(nextPlaced);
+        setShuffledLetters(nextShuffled);
+
+        // 检查是否完成
+        if (nextPlaced.every(l => l !== null)) {
+            checkAnswer(nextPlaced);
+        }
     }
   };
 
@@ -921,7 +955,7 @@ function GameScreen({
                 </div>
 
                 <div className={`flex flex-wrap justify-center gap-2 min-h-[4rem] ${shake ? 'animate-shake' : ''}`}>
-                   {placedLetters.map((l, i) => l?.isSpace ? <div key={i} className="w-4"/> : <div key={i} onClick={() => handleSlotClick(i)} className={`w-12 h-16 flex items-center justify-center text-2xl font-bold rounded-xl border-b-4 cursor-pointer ${l ? 'bg-white border-blue-200 text-blue-600' : 'bg-slate-100 border-slate-200'} ${isCompleted && l ? 'bg-green-100 border-green-400 text-green-600' : ''}`}>{l?.char}</div>)}
+                   {placedLetters.map((l, i) => l?.isSpace ? <div key={i} className="w-4"/> : <div key={i} onClick={() => handleSlotClick(i)} className={`w-14 h-14 md:w-16 md:h-16 flex items-center justify-center text-2xl font-bold rounded-xl border-b-4 cursor-pointer ${l ? 'bg-white border-blue-200 text-blue-600' : 'bg-slate-100 border-slate-200'} ${isCompleted && l ? 'bg-green-100 border-green-400 text-green-600' : ''}`}>{l?.char}</div>)}
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-3 mt-8 min-h-[4rem]">
