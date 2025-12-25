@@ -6,7 +6,7 @@ import {
   Gamepad2, Save, Play, Music, Edit,
   Settings, X, Plus, Trash2, CheckSquare, Square, RefreshCw,
   PenTool, Keyboard, Lock, Award, Zap, Sunrise, Moon, MousePointer, Sparkles,
-  Coffee, Crown, Medal, ThumbsUp, Smile, AlertTriangle, Clock
+  Coffee, Crown, Medal, ThumbsUp, Smile, AlertTriangle, Clock, Mic
 } from 'lucide-react';
 
 // --- 0. 防崩溃保险丝 ---
@@ -34,27 +34,18 @@ class ErrorBoundary extends React.Component {
 
 // --- 1. 全局配置 ---
 
-const STORAGE_VERSION = 'v10.2'; // 升级版本号以加载 Unit 3 & 4 新词
+const STORAGE_VERSION = 'v11.2'; // 升级版本号：修复大乱斗死循环Bug
 const KEYS = {
   WORDS: `spelling_words_${STORAGE_VERSION}`,
-  MISTAKES: `spelling_mistakes_${STORAGE_VERSION}`, // 结构升级，包含 memory stage
+  MISTAKES: `spelling_mistakes_${STORAGE_VERSION}`,
   BRAWL: `spelling_brawl_${STORAGE_VERSION}`,
   STATS: `spelling_stats_${STORAGE_VERSION}`,
   ACHIEVEMENTS: `spelling_achievements_${STORAGE_VERSION}`,
   SETTINGS: `spelling_settings_${STORAGE_VERSION}`
 };
 
-// 艾宾浩斯复习间隔 (毫秒)
-// 0: 立即, 1: 5分, 2: 30分, 3: 12小时, 4: 1天, 5: 3天, 6: 7天
-const MEMORY_INTERVALS = [
-    0, 
-    5 * 60 * 1000, 
-    30 * 60 * 1000, 
-    12 * 60 * 60 * 1000, 
-    24 * 60 * 60 * 1000, 
-    3 * 24 * 60 * 60 * 1000, 
-    7 * 24 * 60 * 60 * 1000
-];
+// 艾宾浩斯复习间隔
+const MEMORY_INTERVALS = [0, 5*60000, 30*60000, 12*3600000, 24*3600000, 3*24*3600000, 7*24*3600000];
 
 const getColor = (index) => {
   const colors = ["text-pink-500", "text-blue-500", "text-green-500", "text-purple-500", "text-orange-500", "text-teal-600", "text-indigo-500", "text-rose-500", "text-cyan-600"];
@@ -73,7 +64,7 @@ const shuffleArray = (array) => {
 const RANDOM_EMOJIS = ["🌟", "🎈", "🐶", "🐱", "🍦", "🌈", "🚀", "⚽", "🎮", "🎸", "📚", "✏️", "🍎", "🍔", "🚲", "⏰", "💡", "🎁", "🔑", "💎"];
 const getRandomEmoji = () => RANDOM_EMOJIS[Math.floor(Math.random() * RANDOM_EMOJIS.length)];
 
-// --- 2. 核心音频引擎 (单例) ---
+// --- 2. 核心音频引擎 (缓存加速版) ---
 
 let globalAudioCtx = null;
 const getAudioContext = () => {
@@ -87,6 +78,7 @@ const getAudioContext = () => {
   return globalAudioCtx;
 };
 
+// 成功的叮叮声 (清脆短促)
 const playSuccessChime = () => {
   try {
     const ctx = getAudioContext();
@@ -97,45 +89,78 @@ const playSuccessChime = () => {
     osc.frequency.setValueAtTime(1046.50, ctx.currentTime);
     gain.gain.setValueAtTime(0, ctx.currentTime);
     gain.gain.linearRampToValueAtTime(0.05, ctx.currentTime + 0.05); 
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5); 
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.8);
+    osc.stop(ctx.currentTime + 0.5);
   } catch (e) {
-    console.warn("Audio chime failed (safe ignore)", e);
+    console.warn("Audio chime failed", e);
   }
 };
 
+// 音频缓存池
+const audioCache = new Map();
+
+// 朗读引擎：缓存 -> 有道美音 -> DictionaryAPI美音 -> TTS美音
 const playWordAudio = async (word) => {
     if (!word) return;
-    const cleanWord = word.toLowerCase().trim().replace(/[^a-z]/g, '');
+    const cleanWord = word.toLowerCase().trim();
+
+    // 1. 检查缓存
+    if (audioCache.has(cleanWord)) {
+        const cachedUrl = audioCache.get(cleanWord);
+        const audio = new Audio(cachedUrl);
+        audio.play().catch(e => console.log("Cached play error:", e));
+        return;
+    }
+
+    // 2. 有道词典 API
+    const youdaoUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(cleanWord)}&type=0`;
+    
+    const tryYoudao = new Promise((resolve, reject) => {
+        const audio = new Audio(youdaoUrl);
+        audio.oncanplaythrough = () => {
+            audioCache.set(cleanWord, youdaoUrl);
+            audio.play();
+            resolve(true);
+        };
+        audio.onerror = () => reject();
+        setTimeout(() => reject(), 2000); 
+        audio.load(); 
+    });
+
+    try {
+        await tryYoudao;
+        return; 
+    } catch (e) {}
+
+    // 3. DictionaryAPI
     try {
         const response = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanWord}`);
         if (response.ok) {
             const data = await response.json();
-            let audioUrl = data[0]?.phonetics?.find(p => p.audio && p.audio.includes('-us.mp3'))?.audio;
-            if (!audioUrl) audioUrl = data[0]?.phonetics?.find(p => p.audio && p.audio !== '')?.audio;
-            if (audioUrl) {
-                const audio = new Audio(audioUrl);
-                await audio.play().catch(e => console.log("Auto-play blocked:", e));
+            const usAudioUrl = data[0]?.phonetics?.find(p => p.audio && p.audio.endsWith('-us.mp3'))?.audio;
+            if (usAudioUrl) {
+                audioCache.set(cleanWord, usAudioUrl);
+                const audio = new Audio(usAudioUrl);
+                audio.play();
                 return;
             }
         }
     } catch (e) {}
 
-    try {
-        if ('speechSynthesis' in window) {
-            window.speechSynthesis.cancel(); 
-            const utterance = new SpeechSynthesisUtterance(word);
-            utterance.lang = 'en-US'; 
-            utterance.rate = 0.9;
-            const voices = window.speechSynthesis.getVoices();
-            const usVoice = voices.find(v => v.lang === 'en-US' && !v.name.includes('UK'));
-            if (usVoice) utterance.voice = usVoice;
-            window.speechSynthesis.speak(utterance);
-        }
-    } catch (e) { console.warn("TTS failed:", e); }
+    // 4. TTS 兜底
+    if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); 
+        const utterance = new SpeechSynthesisUtterance(word);
+        utterance.lang = 'en-US'; 
+        utterance.rate = 0.9;
+        const voices = window.speechSynthesis.getVoices();
+        const usVoice = voices.find(v => v.lang === 'en-US' && !v.name.includes('UK'));
+        if (usVoice) utterance.voice = usVoice;
+        window.speechSynthesis.speak(utterance);
+    }
 };
 
 // --- 3. 数据定义 ---
@@ -242,7 +267,6 @@ const DEFAULT_WORDS_DATA = {
       { word: "giraffe", cn: "长颈鹿", emoji: "🦒", syllables: ["gi", "raffe"] },
       { word: "tall", cn: "高的", emoji: "🗼", syllables: ["tall"] },
       { word: "fast", cn: "快的", emoji: "🐆", syllables: ["fast"] },
-      // Unit 3 新增单词
       { word: "ill", cn: "生病的", emoji: "🤒", syllables: ["ill"] },
       { word: "kid", cn: "小孩", emoji: "🧒", syllables: ["kid"] },
       { word: "job", cn: "工作", emoji: "💼", syllables: ["job"] },
@@ -271,7 +295,6 @@ const DEFAULT_WORDS_DATA = {
       { word: "give", cn: "给", emoji: "🎁", syllables: ["give"] },
       { word: "them", cn: "他们", emoji: "👥", syllables: ["them"] },
       { word: "us", cn: "我们", emoji: "🧑‍🤝‍🧑", syllables: ["us"] },
-      // Unit 4 新增单词
       { word: "map", cn: "地图", emoji: "🗺️", syllables: ["map"] },
       { word: "mum", cn: "妈妈", emoji: "👩", syllables: ["mum"] },
       { word: "fan", cn: "风扇", emoji: "🌀", syllables: ["fan"] },
@@ -345,7 +368,7 @@ const DEFAULT_WORDS_DATA = {
   ]
 };
 
-// --- 4. 存储与管理 (升级支持艾宾浩斯) ---
+// --- 4. 存储与管理 ---
 
 const getStoredWordsData = () => {
   try {
@@ -389,16 +412,9 @@ const saveMistakes = (data) => localStorage.setItem(KEYS.MISTAKES, JSON.stringif
 const addMistake = (wordObj) => {
   const db = getMistakes();
   if (!db[wordObj.word]) {
-    // Stage 0: 立即复习
-    db[wordObj.word] = { 
-        ...wordObj, 
-        stage: 0, 
-        nextReview: Date.now(),
-        hearts: 0 // 兼容旧逻辑
-    };
+    db[wordObj.word] = { ...wordObj, stage: 0, nextReview: Date.now(), hearts: 0 };
     saveMistakes(db);
   } else {
-    // 如果已存在，重置为立即复习
     db[wordObj.word].stage = 0;
     db[wordObj.word].nextReview = Date.now();
     saveMistakes(db);
@@ -413,21 +429,18 @@ const updateMistakeProgress = (wordStr, isCorrect) => {
 
   if (isCorrect) {
     const newStage = (word.stage || 0) + 1;
-    // 如果超过最大阶段，毕业
     if (newStage >= MEMORY_INTERVALS.length) {
       delete db[wordStr];
       saveMistakes(db);
       return 'graduated';
     } else {
-      // 否则进入下一阶段，设置下次复习时间
       word.stage = newStage;
       word.nextReview = Date.now() + MEMORY_INTERVALS[newStage];
-      word.hearts = (word.hearts || 0) + 1; // 兼容显示
+      word.hearts = (word.hearts || 0) + 1;
       saveMistakes(db);
-      return 'improved'; // 意味着推迟到下次
+      return 'improved';
     }
   } else {
-    // 答错，重置回阶段 0 (立即复习)
     word.stage = 0;
     word.nextReview = Date.now();
     word.hearts = 0;
@@ -450,7 +463,7 @@ const saveBrawlProgress = (state) => localStorage.setItem(KEYS.BRAWL, JSON.strin
 const clearBrawlProgress = () => localStorage.removeItem(KEYS.BRAWL);
 
 const getSettings = () => {
-  try { return JSON.parse(localStorage.getItem(KEYS.SETTINGS)) || { enableHints: true }; } catch (e) { return { enableHints: true }; }
+  try { return JSON.parse(localStorage.getItem(KEYS.SETTINGS)) || { enableHints: true, voiceType: 0 }; } catch (e) { return { enableHints: true, voiceType: 0 }; }
 };
 const saveSettings = (s) => localStorage.setItem(KEYS.SETTINGS, JSON.stringify(s));
 
@@ -601,6 +614,8 @@ function SentenceGameScreen({ onBack, settings, onUpdateStats }) {
     setSpellingPlacedLetters(phrase.split('').map((char, i) => char === ' ' ? { char: ' ', isSpace: true, id: `space-${i}` } : null));
     setIsSpellingCompleted(false);
     setShowCelebration(false);
+    
+    // 只在初始加载时播放一次
     setTimeout(() => playWordAudio(chant.sentence), 800);
   };
 
@@ -624,7 +639,8 @@ function SentenceGameScreen({ onBack, settings, onUpdateStats }) {
     const userWords = finalPlaced.map(w => w.text);
     const targetWords = sentenceStructure.filter(s => s.type === 'word').map(s => s.target);
     if (userWords.join('') === targetWords.join('')) {
-      setIsSentenceCompleted(true); playWordAudio(currentChant.sentence);
+      setIsSentenceCompleted(true); 
+      playSuccessChime(); // 只播放成功音效
     } else {
       alert("Oops! 顺序不对哦，再试一次！");
       setPlacedWords(new Array(finalPlaced.length).fill(null));
@@ -652,7 +668,8 @@ function SentenceGameScreen({ onBack, settings, onUpdateStats }) {
 
   const checkSpellingAnswer = (finalPlaced) => {
      if (finalPlaced.map(l => l.char).join('') === currentChant.phrase.word) {
-         setIsSpellingCompleted(true); setShowCelebration(true); onUpdateStats('win'); playWordAudio(currentChant.phrase.word);
+         setIsSpellingCompleted(true); setShowCelebration(true); onUpdateStats('win'); 
+         playSuccessChime(); // 只播放成功音效
      } else {
          setSpellingShake(true); setTimeout(() => setSpellingShake(false), 500);
          const userIds = finalPlaced.filter(l => l && !l.isSpace).map(l => l.id);
@@ -738,7 +755,6 @@ function GameScreen({
   const [currentHearts, setCurrentHearts] = useState(0);
   const [graduatedAnimation, setGraduatedAnimation] = useState(false);
   const audioPlayedRef = useRef(false);
-  // 新增：记录大乱斗错误次数
   const [brawlMistakes, setBrawlMistakes] = useState(0);
 
   const currentWordObj = workingWords[currentIndex];
@@ -747,17 +763,19 @@ function GameScreen({
     if (mode === 'brawl' && onProgressUpdate) onProgressUpdate({ words: workingWords, currentIndex, score });
   }, [currentIndex, score, mode, workingWords]);
 
+  // [BugFix] 仅在单词内容改变时初始化，防止父组件重绘导致的死循环
+  const lastWordRef = useRef(null);
   useEffect(() => {
-    if (currentWordObj) {
+    if (currentWordObj && currentWordObj.word !== lastWordRef.current) {
       initWord(currentWordObj);
+      lastWordRef.current = currentWordObj.word;
       audioPlayedRef.current = false;
       if (isMistakeMode) setCurrentHearts(currentWordObj.hearts || 0);
     }
-  }, [currentIndex, currentWordObj]);
+  }, [currentWordObj, isMistakeMode]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      // 默写模式下，开局不自动播放英语
       const isDictation = mode === 'dictation';
       if (!audioPlayedRef.current && currentWordObj && !graduatedAnimation && !isDictation) {
         playWordAudio(currentWordObj.word);
@@ -786,7 +804,6 @@ function GameScreen({
     if (newPlaced.every(l => l !== null)) checkAnswer(newPlaced);
   };
 
-  // 智能提示: 强制纠错
   const handleSmartHint = () => {
     if (isCompleted) return;
     const targetWord = currentWordObj.word;
@@ -826,16 +843,14 @@ function GameScreen({
     const userPhrase = finalPlaced.map(l => l.char).join('');
     if (userPhrase === currentWordObj.word) {
       setIsCompleted(true);
-      playWordAudio(currentWordObj.word);
       playSuccessChime(); 
       if (isMistakeMode) {
-         // 使用新版艾宾浩斯逻辑
          const res = updateMistakeProgress(currentWordObj.word, true);
          if(res === 'graduated') setGraduatedAnimation(true);
-         else { setCurrentHearts(h => h+1); setShowCelebration(true); setScore(s => s+10); }
+         else { setCurrentHearts(h => h+1); setShowCelebration(true); setScore(s => s+10); updateGlobalScore(10); }
       } else {
          setShowCelebration(true); setScore(s => s+10); 
-         if(mode !== 'brawl') updateGlobalScore(10); // 大乱斗只有最后才算分? 或者实时算
+         if(mode !== 'brawl') updateGlobalScore(10); 
          else updateGlobalScore(10);
       }
       onUpdateStats('win', showHint);
@@ -853,7 +868,6 @@ function GameScreen({
     else {
       if (mode === 'brawl') {
           clearBrawlProgress();
-          // 触发乱斗成就
           onUpdateStats('brawl_complete', false, brawlMistakes);
       }
       alert(`🎉 恭喜通关！`); onBack();
@@ -957,7 +971,13 @@ function SettingsModal({ isOpen, onClose, settings, onUpdateSettings, onResetDat
         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl p-6 w-full max-w-sm">
                 <h2 className="text-2xl font-bold text-center mb-6">设置</h2>
-                <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl mb-4"><span>💡 拼写提示</span><button onClick={() => onUpdateSettings({...settings, enableHints: !settings.enableHints})} className={`w-12 h-6 rounded-full transition-colors ${settings.enableHints ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full transition-transform ${settings.enableHints ? 'translate-x-7' : 'translate-x-1'}`}/></button></div>
+                
+                {/* 拼写提示开关 */}
+                <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl mb-4">
+                    <span>💡 拼写提示</span>
+                    <button onClick={() => onUpdateSettings({...settings, enableHints: !settings.enableHints})} className={`w-12 h-6 rounded-full transition-colors ${settings.enableHints ? 'bg-green-500' : 'bg-gray-300'}`}><div className={`w-4 h-4 bg-white rounded-full transition-transform ${settings.enableHints ? 'translate-x-7' : 'translate-x-1'}`}/></button>
+                </div>
+
                 <button onClick={onResetData} className="w-full border border-red-200 text-red-500 py-2 rounded-lg mb-6 flex justify-center gap-2"><RefreshCw className="w-4 h-4"/> 重置数据</button>
                 <button onClick={onClose} className="w-full bg-slate-800 text-white py-3 rounded-xl font-bold">关闭</button>
             </div>
@@ -1002,8 +1022,10 @@ export default function App() {
   const [unlockedAchievements, setUnlockedAchievements] = useState([]);
   const [toast, setToast] = useState({ visible: false, message: '' });
   const [settings, setSettings] = useState({ enableHints: true });
-  // 复习计数
   const [dueCount, setDueCount] = useState(0);
+
+  // [BugFix] 使用 state 存储大乱斗数据，避免 App 重绘导致 words 引用刷新
+  const [brawlState, setBrawlState] = useState(null);
 
   useEffect(() => {
     const storedWords = localStorage.getItem(KEYS.WORDS);
@@ -1023,10 +1045,13 @@ export default function App() {
     const storedSettings = localStorage.getItem(KEYS.SETTINGS);
     if(storedSettings) setSettings(JSON.parse(storedSettings));
     
-    // 定时检查复习
+    // 恢复大乱斗状态
+    const savedBrawl = getBrawlProgress();
+    if (savedBrawl) setBrawlState(savedBrawl);
+
     const checkDue = () => setDueCount(getDueMistakesCount());
     checkDue();
-    const interval = setInterval(checkDue, 60000); // 1分钟检查一次
+    const interval = setInterval(checkDue, 60000); 
     return () => clearInterval(interval);
   }, []);
 
@@ -1058,7 +1083,7 @@ export default function App() {
           const next = { ...prev };
           if (type === 'win') {
               next.totalWords += 1;
-              next.totalScore = getGlobalScore(); // Sync score
+              next.totalScore = getGlobalScore(); 
               if (!usedHint) next.currentStreak += 1;
               else next.currentStreak = 0;
           } else if (type === 'mistake') {
@@ -1077,10 +1102,9 @@ export default function App() {
 
   const handleTitleClick = () => { setStats(s => ({ ...s, titleClicks: (s.titleClicks || 0) + 1 })); };
 
-  // --- 模式启动逻辑 ---
   const handleBrawlClick = () => {
-    const saved = getBrawlProgress();
-    if (saved && window.confirm(`发现上次大乱斗进度（第 ${saved.currentIndex + 1} 关），是否继续？`)) { 
+    // 优先使用 State 中的缓存
+    if (brawlState && window.confirm(`发现上次大乱斗进度（第 ${brawlState.currentIndex + 1} 关），是否继续？`)) { 
         setGameMode('brawl'); 
     } else { 
         startNewBrawl(); 
@@ -1090,21 +1114,23 @@ export default function App() {
   const startNewBrawl = () => {
     const allWords = Object.values(allWordsData).flat().filter(w => w.isActive !== false);
     if (allWords.length === 0) { alert("没有可用的单词进行大乱斗，请检查单词管理设置。"); return; }
-    
-    // 随机抽30个
     const brawlWords = shuffleArray(allWords).slice(0, 30);
-    
     const newState = { words: brawlWords, currentIndex: 0, score: 0 };
     saveBrawlProgress(newState); 
+    setBrawlState(newState); // 关键：更新 State
     setGameMode('brawl');
+  };
+
+  // [BugFix] 更新大乱斗进度的回调，同时更新 LS 和 State
+  const handleBrawlProgressUpdate = (newState) => {
+      saveBrawlProgress(newState);
+      setBrawlState(newState);
   };
 
   const startNotebookMode = () => {
       const db = getMistakes();
       const now = Date.now();
-      // 过滤出到期的单词
       const dueWords = Object.values(db).filter(w => w.nextReview <= now);
-      
       if (dueWords.length === 0) {
           alert("太棒了！暂时没有需要复习的单词。\n\n系统会根据你的记忆曲线，自动安排下次复习时间。");
           return;
@@ -1116,11 +1142,9 @@ export default function App() {
       if (gameMode === 'chant') return <SentenceGameScreen onBack={() => setGameMode(null)} settings={settings} onUpdateStats={handleUpdateStats} />;
       
       if (gameMode === 'notebook') {
-          // 获取待复习列表
           const db = getMistakes();
           const now = Date.now();
           const words = Object.values(db).filter(w => w.nextReview <= now);
-          // 如果复习完了，自动退出
           if (words.length === 0 && dueCount > 0) {
               alert("恭喜！所有待复习单词已完成！");
               setGameMode(null);
@@ -1130,11 +1154,8 @@ export default function App() {
       }
 
       if (gameMode === 'brawl') {
-          const saved = getBrawlProgress();
-          // 如果没有存档（比如刚开始或者被清除了），就不渲染 GameScreen 或者重新初始化
-          // 这里简单处理：如果有 saved 就渲染，否则（异常情况）回退到主页
-          if (!saved) return null; 
-          return <ErrorBoundary><GameScreen words={saved.words} mode="brawl" onBack={() => setGameMode(null)} initialIndex={saved.currentIndex} initialScore={saved.score} preShuffled={true} onProgressUpdate={saveBrawlProgress} settings={settings} onUpdateStats={handleUpdateStats} /></ErrorBoundary>;
+          if (!brawlState) return null; 
+          return <ErrorBoundary><GameScreen words={brawlState.words} mode="brawl" onBack={() => setGameMode(null)} initialIndex={brawlState.currentIndex} initialScore={brawlState.score} preShuffled={true} onProgressUpdate={handleBrawlProgressUpdate} settings={settings} onUpdateStats={handleUpdateStats} /></ErrorBoundary>;
       }
 
       if (gameMode && selectedUnit) {
@@ -1153,9 +1174,7 @@ export default function App() {
              <div className="fixed top-4 right-4 z-50"><button onClick={() => setShowSettings(true)} className="bg-white text-slate-500 p-2 rounded-full shadow-sm border"><Settings/></button></div>
              <header className="max-w-4xl mx-auto mb-8 pt-16 text-center"><h1 onClick={handleTitleClick} className="text-3xl md:text-4xl font-extrabold text-sky-600 mb-2 flex items-center justify-center gap-3 cursor-pointer select-none active:scale-95 transition"><BookOpen className="w-10 h-10" /> 英语单词大冒险</h1><p className="text-sky-800 text-lg">三年级上册 (Book 3A)</p></header>
              
-             {/* 快捷入口区 */}
              <div className="max-w-4xl mx-auto mb-8 px-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                 {/* 错题本入口 */}
                  <div onClick={startNotebookMode} className={`relative bg-white rounded-3xl p-6 shadow-lg border-2 border-red-100 cursor-pointer hover:scale-[1.02] transition flex items-center gap-4 ${dueCount === 0 ? 'opacity-70 grayscale' : ''}`}>
                      <div className="bg-red-100 p-4 rounded-full"><BookX className="w-8 h-8 text-red-500"/></div>
                      <div>
@@ -1165,7 +1184,6 @@ export default function App() {
                      {dueCount > 0 && <span className="absolute top-4 right-4 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-bounce">{dueCount}</span>}
                  </div>
 
-                 {/* 大乱斗入口 */}
                  <div onClick={handleBrawlClick} className="relative bg-gradient-to-r from-violet-600 to-indigo-600 rounded-3xl p-6 shadow-lg cursor-pointer hover:scale-[1.02] transition flex items-center gap-4 text-white overflow-hidden">
                      <div className="absolute right-[-20px] top-[-20px] opacity-20"><Gamepad2 className="w-32 h-32"/></div>
                      <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm"><Zap className="w-8 h-8 text-yellow-300"/></div>
@@ -1198,12 +1216,14 @@ export default function App() {
 
   return (
     <div className="min-h-[100dvh] w-full bg-sky-50 font-sans pb-20">
+       <ErrorBoundary>
        {renderContent()}
        <ToastNotification isVisible={toast.visible} message={toast.message} onClose={() => setToast({ ...toast, visible: false })} />
        <TrophyWallModal isOpen={showTrophyWall} onClose={() => setShowTrophyWall(false)} unlockedIds={unlockedAchievements} />
        <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} settings={settings} onUpdateSettings={(s) => {setSettings(s); localStorage.setItem(KEYS.SETTINGS, JSON.stringify(s))}} onResetData={() => { localStorage.clear(); window.location.reload(); }} />
        {selectedUnit && !gameMode && !showManager && <ModeSelectionModal unit={selectedUnit} onSelectMode={setGameMode} onOpenManager={() => setShowManager(true)} onClose={() => setSelectedUnit(null)} />}
        {showManager && selectedUnit && <WordManagerModal unit={selectedUnit} words={allWordsData[selectedUnit.id] || []} onUpdateWords={(uid, w) => { const n = {...allWordsData, [uid]: w}; setAllWordsData(n); localStorage.setItem(KEYS.WORDS, JSON.stringify(n)); }} onClose={() => setShowManager(false)} />}
+       </ErrorBoundary>
     </div>
   );
 }
