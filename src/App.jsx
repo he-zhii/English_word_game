@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Volume2, Trophy, ArrowRight, Star, Home, ArrowLeft,
@@ -34,7 +35,7 @@ class ErrorBoundary extends React.Component {
 
 // --- 1. 全局配置 ---
 
-const STORAGE_VERSION = 'v11.2'; // 升级版本号：修复大乱斗死循环Bug
+const STORAGE_VERSION = 'v11.3'; // 升级版本号：UI尺寸优化
 const KEYS = {
   WORDS: `spelling_words_${STORAGE_VERSION}`,
   MISTAKES: `spelling_mistakes_${STORAGE_VERSION}`,
@@ -714,10 +715,10 @@ function SentenceGameScreen({ onBack, settings, onUpdateStats }) {
                  <div className="w-full text-center">
                      <h2 className="text-2xl font-bold text-slate-700 mb-6">拼写: {currentChant.phrase.cn}</h2>
                      <div className={`flex justify-center gap-2 mb-8 ${spellingShake ? 'animate-shake' : ''}`}>
-                        {spellingPlacedLetters.map((l, i) => (l?.isSpace ? <div key={i} className="w-4" /> : <div key={i} onClick={() => handleSpellingSlotClick(i)} className={`w-12 h-14 flex items-center justify-center text-2xl font-bold rounded-xl border-b-4 cursor-pointer ${l ? 'bg-white border-blue-200 text-blue-600' : 'bg-slate-100 border-slate-200'}`}>{l?.char}</div>))}
+                        {spellingPlacedLetters.map((l, i) => (l?.isSpace ? <div key={i} className="w-4" /> : <div key={i} onClick={() => handleSpellingSlotClick(i)} className={`w-14 h-14 md:w-16 md:h-16 flex items-center justify-center text-2xl font-bold rounded-xl border-b-4 cursor-pointer ${l ? 'bg-white border-blue-200 text-blue-600' : 'bg-slate-100 border-slate-200'}`}>{l?.char}</div>))}
                      </div>
                      <div className="flex justify-center gap-2 mb-6">
-                        {!isSpellingCompleted ? spellingShuffledLetters.map(l => (<button key={l.id} onClick={() => handleSpellingLetterClick(l)} disabled={l.isUsed} className={`w-12 h-12 rounded-xl font-bold text-xl ${l.isUsed ? 'opacity-0' : 'bg-yellow-400 text-yellow-900 shadow-md active:scale-95'}`}>{l.char}</button>)) : <button onClick={() => {if(currentIndex < CHANT_DATA.length - 1) setCurrentIndex(c=>c+1); else {alert('通关!'); onBack();}}} className="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce">{currentIndex < CHANT_DATA.length - 1 ? '下一句 ➡️' : '完成!'}</button>}
+                        {!isSpellingCompleted ? spellingShuffledLetters.map(l => (<button key={l.id} onClick={() => handleSpellingLetterClick(l)} disabled={l.isUsed} className={`w-14 h-14 md:w-16 md:h-16 rounded-xl font-bold text-xl md:text-2xl ${l.isUsed ? 'opacity-0' : 'bg-yellow-400 text-yellow-900 shadow-md active:scale-95'}`}>{l.char}</button>)) : <button onClick={() => {if(currentIndex < CHANT_DATA.length - 1) setCurrentIndex(c=>c+1); else {alert('通关!'); onBack();}}} className="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce">{currentIndex < CHANT_DATA.length - 1 ? '下一句 ➡️' : '完成!'}</button>}
                      </div>
                      {!isSpellingCompleted && settings.enableHints && <button onClick={handleHint} className="mx-auto w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-500"><Lightbulb/></button>}
                      {showCelebration && <div className="absolute inset-0 flex items-center justify-center pointer-events-none text-9xl animate-ping opacity-20">🌟</div>}
@@ -924,7 +925,7 @@ function GameScreen({
                 </div>
 
                 <div className="flex flex-wrap justify-center gap-3 mt-8 min-h-[4rem]">
-                   {!isCompleted ? shuffledLetters.map(l => (<button key={l.id} onClick={() => handleLetterClick(l)} disabled={l.isUsed} className={`w-14 h-14 sm:w-12 sm:h-12 rounded-xl font-bold text-xl touch-manipulation ${l.isUsed ? 'opacity-0' : 'bg-yellow-400 text-yellow-900 shadow-md active:scale-95'}`}>{l.char}</button>)) : !graduatedAnimation && <button onClick={nextLevel} className="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce">下一关 ➡️</button>}
+                   {!isCompleted ? shuffledLetters.map(l => (<button key={l.id} onClick={() => handleLetterClick(l)} disabled={l.isUsed} className={`w-14 h-14 md:w-16 md:h-16 rounded-xl font-bold text-xl md:text-2xl touch-manipulation ${l.isUsed ? 'opacity-0' : 'bg-yellow-400 text-yellow-900 shadow-md active:scale-95'}`}>{l.char}</button>)) : !graduatedAnimation && <button onClick={nextLevel} className="bg-green-500 text-white px-8 py-3 rounded-full font-bold shadow-lg animate-bounce">下一关 ➡️</button>}
                 </div>
              </div>
           </div>
