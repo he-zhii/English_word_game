@@ -10,7 +10,7 @@
     },
     {
         "word": "orange",
-        "cn": "橙红色",
+        "cn": "橙色",
         "emoji": "🟧",
         "syllables": [
             "or",
@@ -20,7 +20,7 @@
     {
         "word": "green",
         "cn": "绿色",
-        "emoji": "🟩",
+        "emoji": "🟢",
         "syllables": [
             "green"
         ]
@@ -28,7 +28,7 @@
     {
         "word": "red",
         "cn": "红色",
-        "emoji": "🟥",
+        "emoji": "🔴",
         "syllables": [
             "red"
         ]
@@ -36,23 +36,15 @@
     {
         "word": "blue",
         "cn": "蓝色",
-        "emoji": "🟦",
+        "emoji": "🔵",
         "syllables": [
             "blue"
         ]
     },
     {
-        "word": "make",
-        "cn": "做",
-        "emoji": "🔨",
-        "syllables": [
-            "make"
-        ]
-    },
-    {
         "word": "purple",
         "cn": "紫色",
-        "emoji": "🟪",
+        "emoji": "🟣",
         "syllables": [
             "pur",
             "ple"
@@ -61,42 +53,18 @@
     {
         "word": "brown",
         "cn": "棕色",
-        "emoji": "🟫",
+        "emoji": "🤎",
         "syllables": [
             "brown"
         ]
     },
     {
-        "word": "bear",
-        "cn": "熊",
-        "emoji": "🐻",
-        "syllables": [
-            "bear"
-        ]
-    },
-    {
         "word": "yellow",
         "cn": "黄色",
-        "emoji": "🟨",
+        "emoji": "💛",
         "syllables": [
             "yel",
             "low"
-        ]
-    },
-    {
-        "word": "duck",
-        "cn": "鸭子",
-        "emoji": "🦆",
-        "syllables": [
-            "duck"
-        ]
-    },
-    {
-        "word": "sea",
-        "cn": "海洋",
-        "emoji": "🌊",
-        "syllables": [
-            "sea"
         ]
     },
     {
@@ -105,14 +73,6 @@
         "emoji": "💗",
         "syllables": [
             "pink"
-        ]
-    },
-    {
-        "word": "draw",
-        "cn": "画",
-        "emoji": "🖍️",
-        "syllables": [
-            "draw"
         ]
     },
     {
@@ -129,6 +89,63 @@
         "emoji": "⬛",
         "syllables": [
             "black"
+        ]
+    },
+    {
+        "word": "duck",
+        "cn": "鸭子",
+        "emoji": "🦆",
+        "syllables": [
+            "duck"
+        ]
+    },
+    {
+        "word": "flower",
+        "cn": "花",
+        "emoji": "🌸",
+        "syllables": [
+            "flow",
+            "er"
+        ]
+    },
+    {
+        "word": "sea",
+        "cn": "海",
+        "emoji": "🌊",
+        "syllables": [
+            "sea"
+        ]
+    },
+    {
+        "word": "grass",
+        "cn": "草",
+        "emoji": "🌿",
+        "syllables": [
+            "grass"
+        ]
+    },
+    {
+        "word": "world",
+        "cn": "世界",
+        "emoji": "🌍",
+        "syllables": [
+            "world"
+        ]
+    },
+    {
+        "word": "here",
+        "cn": "这里",
+        "emoji": "📍",
+        "syllables": [
+            "here"
+        ]
+    },
+    {
+        "word": "there",
+        "cn": "那里",
+        "emoji": "👉",
+        "syllables": [
+            "there"
         ]
     },
     {
@@ -174,14 +191,6 @@
         ]
     },
     {
-        "word": "ted",
-        "cn": "泰德",
-        "emoji": "🧸",
-        "syllables": [
-            "ted"
-        ]
-    },
-    {
         "word": "sit",
         "cn": "坐",
         "emoji": "🪑",
@@ -190,27 +199,11 @@
         ]
     },
     {
-        "word": "down",
-        "cn": "下",
-        "emoji": "⬇️",
-        "syllables": [
-            "down"
-        ]
-    },
-    {
         "word": "up",
-        "cn": "上",
+        "cn": "向上",
         "emoji": "⬆️",
         "syllables": [
             "up"
-        ]
-    },
-    {
-        "word": "stand",
-        "cn": "站",
-        "emoji": "🧍",
-        "syllables": [
-            "stand"
         ]
     },
     {
@@ -222,20 +215,44 @@
         ]
     },
     {
-        "word": "number",
-        "cn": "数字",
-        "emoji": "🔢",
+        "word": "a yellow duck",
+        "cn": "一只黄色的鸭子",
+        "emoji": "🦆",
         "syllables": [
-            "num",
-            "ber"
+            "a",
+            "yel",
+            "low",
+            "duck"
         ]
     },
     {
-        "word": "boys",
-        "cn": "男孩们",
-        "emoji": "👦",
+        "word": "a purple flower",
+        "cn": "一朵紫色的花",
+        "emoji": "💜",
         "syllables": [
-            "boys"
+            "a",
+            "pur",
+            "ple",
+            "flow",
+            "er"
+        ]
+    },
+    {
+        "word": "blue sea",
+        "cn": "蓝色的海",
+        "emoji": "🌊",
+        "syllables": [
+            "blue",
+            "sea"
+        ]
+    },
+    {
+        "word": "green grass",
+        "cn": "绿色的草",
+        "emoji": "🌿",
+        "syllables": [
+            "green",
+            "grass"
         ]
     }
 ]

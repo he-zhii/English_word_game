@@ -27,18 +27,16 @@ export function ModeSelectionModal({ unit, onSelectMode, onOpenManager, onClose 
                             <div className="text-xs text-gray-500">轻松记单词</div>
                         </div>
                     </button>
-                    {unit.id !== 5 && (
-                        <button
-                            onClick={() => onSelectMode('dictation')}
-                            className="w-full border-2 border-emerald-100 bg-emerald-50 p-4 rounded-xl flex items-center gap-4 hover:scale-105 transition"
-                        >
-                            <PenTool className="text-emerald-500" />
-                            <div className="text-left">
-                                <div className="font-bold">默写测验</div>
-                                <div className="text-xs text-gray-500">测试掌握水平</div>
-                            </div>
-                        </button>
-                    )}
+                    <button
+                        onClick={() => onSelectMode('dictation')}
+                        className="w-full border-2 border-emerald-100 bg-emerald-50 p-4 rounded-xl flex items-center gap-4 hover:scale-105 transition"
+                    >
+                        <PenTool className="text-emerald-500" />
+                        <div className="text-left">
+                            <div className="font-bold">默写测验</div>
+                            <div className="text-xs text-gray-500">测试掌握水平</div>
+                        </div>
+                    </button>
                     {unit.hasChant && (
                         <button
                             onClick={() => onSelectMode('chant')}
