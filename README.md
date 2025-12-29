@@ -1,16 +1,89 @@
-# React + Vite
+# 🎮 英语单词大冒险
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> 一款面向三年级学生的趣味英语单词拼写学习应用
 
-Currently, two official plugins are available:
+![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react)
+![Vite](https://img.shields.io/badge/Vite-7.2-646CFF?logo=vite)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.4-06B6D4?logo=tailwindcss)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## ✨ 特色功能
 
-## React Compiler
+### 🎯 核心学习模式
+- **看图练习** - 通过图片和emoji辅助记忆单词
+- **默写测验** - 听音拼写,检验掌握程度
+- **全明星大乱斗** - 随机抽取30词极速挑战
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 🧠 智能记忆系统
+- **艾宾浩斯遗忘曲线** - 科学安排复习时间
+- **单词加油站** - 错题自动收集,智能复习提醒
 
-## Expanding the ESLint configuration
+### 🏆 成就激励系统
+- 18种成就徽章,包含里程碑、连击、趣味和隐藏成就
+- 奖杯墙展示收集进度
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 📚 6个学习单元
+| 单元 | 主题 | 词汇数 |
+|------|------|--------|
+| Unit 1 | 身体部位 Body Parts | 20+ |
+| Unit 2 | 家庭关系 Family | 20+ |
+| Unit 3 | 认识动物 Animals | 20+ |
+| Unit 4 | 认识水果 Fruits | 20+ |
+| Unit 5 | 颜色与动作 Colors & Actions | 30 |
+| Unit 6 | 数字与拼读 Numbers & Phonics | 30+ |
+
+## 🚀 快速开始
+
+### 环境要求
+- Node.js >= 18.0
+- npm >= 9.0
+
+### 安装运行
+```bash
+# 克隆项目
+git clone https://github.com/he-zhii/English_word_game.git
+cd English_word_game
+
+# 安装依赖
+npm install
+
+# 启动开发服务器
+npm run dev
+```
+
+### 构建部署
+```bash
+# 构建生产版本
+npm run build
+
+# 预览构建结果
+npm run preview
+```
+
+## 📖 文档
+
+- [架构文档](./docs/ARCHITECTURE.md) - 项目结构与技术实现
+- [开发指南](./docs/DEVELOPMENT.md) - 开发规范与贡献指南
+
+## 🛠️ 技术栈
+
+| 技术 | 用途 |
+|------|------|
+| React 19 | UI 框架 |
+| Vite 7 | 构建工具 |
+| TailwindCSS 3 | 样式框架 |
+| Lucide React | 图标库 |
+| Web Audio API | 音效播放 |
+| Web Speech API | 语音合成 |
+| localStorage | 本地数据持久化 |
+
+## 📱 浏览器支持
+
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+- 移动端浏览器 (iOS Safari, Android Chrome)
+
+## 📄 License
+
+MIT License - 详见 [LICENSE](./LICENSE) 文件

@@ -1,7 +1,7 @@
 // 模式选择弹窗组件
 
 import React from 'react';
-import { X, Settings, Eye, PenTool, Music } from 'lucide-react';
+import { X, Settings, Eye, PenTool } from 'lucide-react';
 
 export function ModeSelectionModal({ unit, onSelectMode, onOpenManager, onClose }) {
     return (
@@ -37,18 +37,7 @@ export function ModeSelectionModal({ unit, onSelectMode, onOpenManager, onClose 
                             <div className="text-xs text-gray-500">测试掌握水平</div>
                         </div>
                     </button>
-                    {unit.hasChant && (
-                        <button
-                            onClick={() => onSelectMode('chant')}
-                            className="w-full bg-gradient-to-r from-violet-500 to-fuchsia-500 text-white p-4 rounded-xl flex items-center gap-4 hover:scale-105 transition"
-                        >
-                            <Music />
-                            <div className="text-left">
-                                <div className="font-bold">律动小剧场</div>
-                                <div className="text-xs opacity-80">Unit 5 专属</div>
-                            </div>
-                        </button>
-                    )}
+
                 </div>
             </div>
         </div>

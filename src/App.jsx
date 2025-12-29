@@ -33,7 +33,7 @@ import { WordManagerModal } from './components/modals/WordManagerModal';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { ModeSelectionModal } from './components/modals/ModeSelectionModal';
 import { GameScreen } from './components/game/GameScreen';
-import { SentenceGameScreen } from './components/game/SentenceGameScreen';
+
 
 export default function App() {
   const [selectedUnit, setSelectedUnit] = useState(null);
@@ -213,15 +213,7 @@ export default function App() {
   };
 
   const renderContent = () => {
-    if (gameMode === 'chant') {
-      return (
-        <SentenceGameScreen
-          onBack={() => setGameMode(null)}
-          settings={settings}
-          onUpdateStats={handleUpdateStats}
-        />
-      );
-    }
+
 
     if (gameMode === 'notebook') {
       const db = getMistakes();
