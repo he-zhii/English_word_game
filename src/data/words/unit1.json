@@ -1,0 +1,148 @@
+[
+    {
+        "word": "name",
+        "cn": "名字",
+        "emoji": "📛",
+        "syllables": [
+            "name"
+        ]
+    },
+    {
+        "word": "nice",
+        "cn": "友好的",
+        "emoji": "😊",
+        "syllables": [
+            "nice"
+        ]
+    },
+    {
+        "word": "ear",
+        "cn": "耳朵",
+        "emoji": "👂",
+        "syllables": [
+            "ear"
+        ]
+    },
+    {
+        "word": "hand",
+        "cn": "手",
+        "emoji": "✋",
+        "syllables": [
+            "hand"
+        ]
+    },
+    {
+        "word": "eye",
+        "cn": "眼睛",
+        "emoji": "👁️",
+        "syllables": [
+            "eye"
+        ]
+    },
+    {
+        "word": "mouth",
+        "cn": "嘴",
+        "emoji": "👄",
+        "syllables": [
+            "mouth"
+        ]
+    },
+    {
+        "word": "arm",
+        "cn": "胳膊",
+        "emoji": "💪",
+        "syllables": [
+            "arm"
+        ]
+    },
+    {
+        "word": "can",
+        "cn": "可以",
+        "emoji": "🆗",
+        "syllables": [
+            "can"
+        ]
+    },
+    {
+        "word": "share",
+        "cn": "分享",
+        "emoji": "🍰",
+        "syllables": [
+            "share"
+        ]
+    },
+    {
+        "word": "smile",
+        "cn": "微笑",
+        "emoji": "😄",
+        "syllables": [
+            "smile"
+        ]
+    },
+    {
+        "word": "listen",
+        "cn": "听",
+        "emoji": "🎧",
+        "syllables": [
+            "lis",
+            "ten"
+        ]
+    },
+    {
+        "word": "help",
+        "cn": "帮助",
+        "emoji": "🤝",
+        "syllables": [
+            "help"
+        ]
+    },
+    {
+        "word": "say",
+        "cn": "说",
+        "emoji": "🗣️",
+        "syllables": [
+            "say"
+        ]
+    },
+    {
+        "word": "and",
+        "cn": "和",
+        "emoji": "➕",
+        "syllables": [
+            "and"
+        ]
+    },
+    {
+        "word": "goodbye",
+        "cn": "再见",
+        "emoji": "👋",
+        "syllables": [
+            "good",
+            "bye"
+        ]
+    },
+    {
+        "word": "toy",
+        "cn": "玩具",
+        "emoji": "🧸",
+        "syllables": [
+            "toy"
+        ]
+    },
+    {
+        "word": "friend",
+        "cn": "朋友",
+        "emoji": "👭",
+        "syllables": [
+            "friend"
+        ]
+    },
+    {
+        "word": "good",
+        "cn": "好的",
+        "emoji": "👍",
+        "syllables": [
+            "good"
+        ]
+    }
+]

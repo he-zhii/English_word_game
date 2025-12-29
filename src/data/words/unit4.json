@@ -1,0 +1,209 @@
+[
+    {
+        "word": "apple",
+        "cn": "苹果",
+        "emoji": "🍎",
+        "syllables": [
+            "ap",
+            "ple"
+        ]
+    },
+    {
+        "word": "banana",
+        "cn": "香蕉",
+        "emoji": "🍌",
+        "syllables": [
+            "ba",
+            "na",
+            "na"
+        ]
+    },
+    {
+        "word": "farm",
+        "cn": "农场",
+        "emoji": "🚜",
+        "syllables": [
+            "farm"
+        ]
+    },
+    {
+        "word": "air",
+        "cn": "空气",
+        "emoji": "💨",
+        "syllables": [
+            "air"
+        ]
+    },
+    {
+        "word": "orange",
+        "cn": "橙子",
+        "emoji": "🍊",
+        "syllables": [
+            "or",
+            "ange"
+        ]
+    },
+    {
+        "word": "grape",
+        "cn": "葡萄",
+        "emoji": "🍇",
+        "syllables": [
+            "grape"
+        ]
+    },
+    {
+        "word": "school",
+        "cn": "学校",
+        "emoji": "🏫",
+        "syllables": [
+            "school"
+        ]
+    },
+    {
+        "word": "garden",
+        "cn": "花园",
+        "emoji": "🌻",
+        "syllables": [
+            "gar",
+            "den"
+        ]
+    },
+    {
+        "word": "need",
+        "cn": "需要",
+        "emoji": "🤲",
+        "syllables": [
+            "need"
+        ]
+    },
+    {
+        "word": "water",
+        "cn": "水",
+        "emoji": "💧",
+        "syllables": [
+            "wa",
+            "ter"
+        ]
+    },
+    {
+        "word": "flower",
+        "cn": "花朵",
+        "emoji": "🌺",
+        "syllables": [
+            "flow",
+            "er"
+        ]
+    },
+    {
+        "word": "grass",
+        "cn": "草",
+        "emoji": "🌿",
+        "syllables": [
+            "grass"
+        ]
+    },
+    {
+        "word": "plant",
+        "cn": "植物",
+        "emoji": "🪴",
+        "syllables": [
+            "plant"
+        ]
+    },
+    {
+        "word": "new",
+        "cn": "新的",
+        "emoji": "🆕",
+        "syllables": [
+            "new"
+        ]
+    },
+    {
+        "word": "tree",
+        "cn": "树",
+        "emoji": "🌳",
+        "syllables": [
+            "tree"
+        ]
+    },
+    {
+        "word": "sun",
+        "cn": "太阳",
+        "emoji": "☀️",
+        "syllables": [
+            "sun"
+        ]
+    },
+    {
+        "word": "give",
+        "cn": "给",
+        "emoji": "🎁",
+        "syllables": [
+            "give"
+        ]
+    },
+    {
+        "word": "them",
+        "cn": "他们",
+        "emoji": "👥",
+        "syllables": [
+            "them"
+        ]
+    },
+    {
+        "word": "us",
+        "cn": "我们",
+        "emoji": "🧑‍🤝‍🧑",
+        "syllables": [
+            "us"
+        ]
+    },
+    {
+        "word": "map",
+        "cn": "地图",
+        "emoji": "🗺️",
+        "syllables": [
+            "map"
+        ]
+    },
+    {
+        "word": "mum",
+        "cn": "妈妈",
+        "emoji": "👩",
+        "syllables": [
+            "mum"
+        ]
+    },
+    {
+        "word": "fan",
+        "cn": "风扇",
+        "emoji": "🌀",
+        "syllables": [
+            "fan"
+        ]
+    },
+    {
+        "word": "fox",
+        "cn": "狐狸",
+        "emoji": "🦊",
+        "syllables": [
+            "fox"
+        ]
+    },
+    {
+        "word": "pen",
+        "cn": "钢笔",
+        "emoji": "🖊️",
+        "syllables": [
+            "pen"
+        ]
+    },
+    {
+        "word": "cup",
+        "cn": "杯子",
+        "emoji": "☕",
+        "syllables": [
+            "cup"
+        ]
+    }
+]

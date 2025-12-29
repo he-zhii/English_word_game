@@ -1,0 +1,177 @@
+[
+    {
+        "word": "mum",
+        "cn": "妈妈",
+        "emoji": "👩",
+        "syllables": [
+            "mum"
+        ]
+    },
+    {
+        "word": "dad",
+        "cn": "爸爸",
+        "emoji": "👨",
+        "syllables": [
+            "dad"
+        ]
+    },
+    {
+        "word": "mother",
+        "cn": "妈妈",
+        "emoji": "👩",
+        "syllables": [
+            "moth",
+            "er"
+        ]
+    },
+    {
+        "word": "father",
+        "cn": "爸爸",
+        "emoji": "👨",
+        "syllables": [
+            "fa",
+            "ther"
+        ]
+    },
+    {
+        "word": "me",
+        "cn": "我",
+        "emoji": "🙋",
+        "syllables": [
+            "me"
+        ]
+    },
+    {
+        "word": "sister",
+        "cn": "姐妹",
+        "emoji": "👧",
+        "syllables": [
+            "sis",
+            "ter"
+        ]
+    },
+    {
+        "word": "family",
+        "cn": "家",
+        "emoji": "👨‍👩‍👧‍👦",
+        "syllables": [
+            "fam",
+            "i",
+            "ly"
+        ]
+    },
+    {
+        "word": "have",
+        "cn": "有",
+        "emoji": "🈶",
+        "syllables": [
+            "have"
+        ]
+    },
+    {
+        "word": "cousin",
+        "cn": "堂兄/弟",
+        "emoji": "👫",
+        "syllables": [
+            "cous",
+            "in"
+        ]
+    },
+    {
+        "word": "brother",
+        "cn": "兄弟",
+        "emoji": "👦",
+        "syllables": [
+            "broth",
+            "er"
+        ]
+    },
+    {
+        "word": "baby",
+        "cn": "宝宝",
+        "emoji": "👶",
+        "syllables": [
+            "ba",
+            "by"
+        ]
+    },
+    {
+        "word": "big",
+        "cn": "大",
+        "emoji": "🐘",
+        "syllables": [
+            "big"
+        ]
+    },
+    {
+        "word": "uncle",
+        "cn": "叔叔",
+        "emoji": "🤵",
+        "syllables": [
+            "un",
+            "cle"
+        ]
+    },
+    {
+        "word": "aunt",
+        "cn": "伯母",
+        "emoji": "👩",
+        "syllables": [
+            "aunt"
+        ]
+    },
+    {
+        "word": "some",
+        "cn": "一些",
+        "emoji": "🍬",
+        "syllables": [
+            "some"
+        ]
+    },
+    {
+        "word": "small",
+        "cn": "小的",
+        "emoji": "🐜",
+        "syllables": [
+            "small"
+        ]
+    },
+    {
+        "word": "grandma",
+        "cn": "奶奶",
+        "emoji": "👵",
+        "syllables": [
+            "grand",
+            "ma"
+        ]
+    },
+    {
+        "word": "grandpa",
+        "cn": "爷爷",
+        "emoji": "👴",
+        "syllables": [
+            "grand",
+            "pa"
+        ]
+    },
+    {
+        "word": "grandfather",
+        "cn": "外祖父",
+        "emoji": "👴",
+        "syllables": [
+            "grand",
+            "fa",
+            "ther"
+        ]
+    },
+    {
+        "word": "grandmother",
+        "cn": "外祖母",
+        "emoji": "👵",
+        "syllables": [
+            "grand",
+            "moth",
+            "er"
+        ]
+    }
+]
