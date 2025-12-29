@@ -55,17 +55,31 @@ export default function App() {
   const [brawlState, setBrawlState] = useState(null);
 
   useEffect(() => {
-    // 加载单词数据
+    // 加载单词数据 - 合并策略：JSON作为基准，保留localStorage中的isActive状态
     const storedWords = getStoredWordsData();
-    if (storedWords) {
-      setAllWordsData(storedWords);
-    } else {
-      const normalized = {};
-      Object.keys(DEFAULT_WORDS_DATA).forEach(k =>
-        normalized[k] = DEFAULT_WORDS_DATA[k].map(w => ({ ...w, isActive: w.isActive !== false }))
-      );
-      setAllWordsData(normalized);
-    }
+    const normalized = {};
+
+    Object.keys(DEFAULT_WORDS_DATA).forEach(unitId => {
+      const defaultUnitWords = DEFAULT_WORDS_DATA[unitId].map(w => ({ ...w, isActive: w.isActive !== false }));
+      const storedUnitWords = storedWords?.[unitId] || [];
+
+      // 创建存储数据的word到isActive的映射
+      const storedActiveMap = {};
+      storedUnitWords.forEach(w => {
+        storedActiveMap[w.word] = w.isActive;
+      });
+
+      // 以JSON为基准，合并isActive状态
+      normalized[unitId] = defaultUnitWords.map(w => ({
+        ...w,
+        // 如果localStorage中有这个词的状态，使用存储的状态；否则使用默认值
+        isActive: storedActiveMap.hasOwnProperty(w.word) ? storedActiveMap[w.word] : w.isActive
+      }));
+    });
+
+    setAllWordsData(normalized);
+    // 同时更新localStorage，确保数据一致
+    saveWordsData(normalized);
 
     // 加载统计数据
     const storedStats = getStats();
