@@ -1,144 +1,182 @@
-// 英语单词大冒险 - 主入口
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Toaster } from 'sonner';
+import { Trophy, Settings } from 'lucide-react';
 
-import React, { useState, useEffect } from 'react';
-import {
-  BookOpen, Trophy, Star, ArrowRight, Settings,
-  BookX, Zap, Gamepad2
-} from 'lucide-react';
-
-// 样式
 import './styles/animations.css';
 
-// 数据
-import { ACHIEVEMENTS_DATA } from './data/achievements';
-import { UNIT_METADATA } from './data/units';
-import { DEFAULT_WORDS_DATA } from './data/words';
+import { getCurrentLevel, hasLevelUp } from './data/levels';
+import { getUnitsWithIcons } from './data/books';
 
-// 工具
-import { shuffleArray } from './utils/helpers';
+import { useGameData } from './hooks/useGameData';
+import { useAchievements } from './hooks/useAchievements';
+import { useBrawl } from './hooks/useBrawl';
 import {
-  getStoredWordsData, saveWordsData, getGlobalScore,
-  getMistakes, getDueMistakesCount,
-  getBrawlProgress, saveBrawlProgress, clearBrawlProgress,
+  getCurrentBookId, setCurrentBookId,
+  getGlobalScore, getMistakes, getDueMistakesCount,
   getSettings, saveSettings, getStats, saveStats,
-  getAchievements, saveAchievements
+  getGlobalStats, saveGlobalStats
 } from './utils/storage';
-import { KEYS } from './constants';
 
-// 组件
+import { notify } from './utils/notify';
+
 import { ErrorBoundary } from './components/ui/ErrorBoundary';
-import { ToastNotification } from './components/ui/ToastNotification';
+import { useConfirmModal } from './components/ui/ConfirmModal';
 import { TrophyWallModal } from './components/modals/TrophyWallModal';
 import { WordManagerModal } from './components/modals/WordManagerModal';
 import { SettingsModal } from './components/modals/SettingsModal';
 import { ModeSelectionModal } from './components/modals/ModeSelectionModal';
 import { GameScreen } from './components/game/GameScreen';
+import { LevelUpModal } from './components/modals/LevelUpModal';
 
+import { Header } from './components/home/Header';
+import { LevelCard } from './components/home/LevelCard';
+import { SpecialModes } from './components/home/SpecialModes';
+import { UnitGrid } from './components/home/UnitGrid';
+
+const DEFAULT_STATS = {
+  totalWords: 0,
+  totalScore: 0,
+  totalMistakes: 0,
+  totalHints: 0,
+  currentStreak: 0,
+  maxStreak: 0,
+  titleClicks: 0,
+  brawlsCompleted: 0,
+  perfectBrawls: 0,
+  speedBrawls: 0,
+  notebookUsed: 0,
+  unitsCompleted: 0,
+  sameWordMistakes: {},
+  comebackAchieved: false,
+  fastestWord: null
+};
+
+const DEFAULT_GLOBAL_STATS = {
+  consecutiveDays: 0,
+  lastStudyDate: null,
+  totalSessionMinutes: 0
+};
+
+function useNotebookWords(bookId) {
+  const [words, setWords] = useState([]);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const refresh = useCallback(() => {
+    setRefreshKey(k => k + 1);
+  }, []);
+
+  useEffect(() => {
+    const db = getMistakes(bookId);
+    const now = Date.now();
+    const dueWords = Object.values(db).filter(w => w.nextReview <= now);
+    setWords(dueWords);
+  }, [bookId, refreshKey]);
+
+  return { words, refresh };
+}
 
 export default function App() {
+  const [currentBookId, setCurrentBookIdState] = useState(getCurrentBookId);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [gameMode, setGameMode] = useState(null);
   const [showManager, setShowManager] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showTrophyWall, setShowTrophyWall] = useState(false);
-  const [allWordsData, setAllWordsData] = useState({});
-  const [stats, setStats] = useState({
-    totalWords: 0, totalScore: 0, totalMistakes: 0, totalHints: 0, currentStreak: 0, titleClicks: 0,
-    brawlsCompleted: 0, perfectBrawls: 0
+  const [levelUpModal, setLevelUpModal] = useState(null);
+  const [stats, setStats] = useState(() => {
+    const stored = getStats(currentBookId);
+    return stored || { ...DEFAULT_STATS, totalScore: getGlobalScore(currentBookId) };
   });
-  const [unlockedAchievements, setUnlockedAchievements] = useState([]);
-  const [toast, setToast] = useState({ visible: false, message: '' });
-  const [settings, setSettingsState] = useState({ enableHints: true });
+  const [globalStats, setGlobalStats] = useState(() => getGlobalStats());
+  const [settings, setSettingsState] = useState(() => getSettings());
   const [dueCount, setDueCount] = useState(0);
+  const [sessionMinutes, setSessionMinutes] = useState(0);
+  const sessionStartTimeRef = useRef(null);
 
-  // [BugFix] 使用 state 存储大乱斗数据，避免 App 重绘导致 words 引用刷新
-  const [brawlState, setBrawlState] = useState(null);
+  const confirmModal = useConfirmModal();
+  const { words: notebookWords, refresh: refreshNotebookWords } = useNotebookWords(currentBookId);
 
-  useEffect(() => {
-    // 加载单词数据 - 合并策略：JSON作为基准，保留localStorage中的isActive状态
-    const storedWords = getStoredWordsData();
-    const normalized = {};
+  const {
+    allWordsData,
+    currentBook,
+    updateUnitWords,
+    getAllActiveWords,
+    getUnitWordCount
+  } = useGameData(currentBookId);
 
-    Object.keys(DEFAULT_WORDS_DATA).forEach(unitId => {
-      const defaultUnitWords = DEFAULT_WORDS_DATA[unitId].map(w => ({ ...w, isActive: w.isActive !== false }));
-      const storedUnitWords = storedWords?.[unitId] || [];
+  const { unlockedAchievements, checkAchievements } = useAchievements();
 
-      // 创建存储数据的word到isActive的映射
-      const storedActiveMap = {};
-      storedUnitWords.forEach(w => {
-        storedActiveMap[w.word] = w.isActive;
-      });
+  const { brawlState, startNewBrawl, updateBrawlProgress, endBrawl } = useBrawl(
+    currentBookId,
+    getAllActiveWords
+  );
 
-      // 以JSON为基准，合并isActive状态
-      normalized[unitId] = defaultUnitWords.map(w => ({
-        ...w,
-        // 如果localStorage中有这个词的状态，使用存储的状态；否则使用默认值
-        isActive: storedActiveMap.hasOwnProperty(w.word) ? storedActiveMap[w.word] : w.isActive
-      }));
-    });
+  const unitMetadata = getUnitsWithIcons(currentBookId);
 
-    setAllWordsData(normalized);
-    // 同时更新localStorage，确保数据一致
-    saveWordsData(normalized);
-
-    // 加载统计数据
-    const storedStats = getStats();
-    if (storedStats) setStats(storedStats);
-    else {
-      setStats(prev => ({ ...prev, totalScore: getGlobalScore() }));
-    }
-
-    // 加载其他数据
-    const storedAch = getAchievements();
-    if (storedAch.length > 0) setUnlockedAchievements(storedAch);
-
-    const storedSettings = getSettings();
-    setSettingsState(storedSettings);
-
-    // 恢复大乱斗状态
-    const savedBrawl = getBrawlProgress();
-    if (savedBrawl) setBrawlState(savedBrawl);
-
-    const checkDue = () => setDueCount(getDueMistakesCount());
-    checkDue();
-    const interval = setInterval(checkDue, 60000);
-    return () => clearInterval(interval);
+  const handleSwitchBook = useCallback((bookId) => {
+    setCurrentBookId(bookId);
+    setCurrentBookIdState(bookId);
+    setSelectedUnit(null);
+    setGameMode(null);
+    const stored = getStats(bookId);
+    setStats(stored || { ...DEFAULT_STATS, totalScore: getGlobalScore(bookId) });
+    setDueCount(getDueMistakesCount(bookId));
   }, []);
 
   useEffect(() => {
-    saveStats(stats);
-    checkAchievements(stats);
-  }, [stats]);
+    setDueCount(getDueMistakesCount(currentBookId));
+    const interval = setInterval(() => {
+      setDueCount(getDueMistakesCount(currentBookId));
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [currentBookId]);
 
-  const checkAchievements = (currentStats) => {
-    let newUnlocks = [];
-    ACHIEVEMENTS_DATA.forEach(ach => {
-      if (!unlockedAchievements.includes(ach.id) && ach.condition(currentStats)) {
-        newUnlocks.push(ach);
-      }
-    });
-    if (newUnlocks.length > 0) {
-      const newIds = newUnlocks.map(a => a.id);
-      const updated = [...unlockedAchievements, ...newIds];
-      setUnlockedAchievements(updated);
-      saveAchievements(updated);
-      showToast(`🏆 解锁成就：${newUnlocks[0].title}！`);
+  useEffect(() => {
+    saveStats(currentBookId, stats);
+    const allUnitsUnlocked = unitMetadata.every(unit => getUnitWordCount(unit.id) > 0);
+    const enhancedStats = {
+      ...stats,
+      sessionMinutes,
+      consecutiveDays: globalStats.consecutiveDays,
+      allUnitsUnlocked
+    };
+    checkAchievements(enhancedStats);
+  }, [stats, currentBookId, checkAchievements, sessionMinutes, globalStats.consecutiveDays, unitMetadata, getUnitWordCount]);
+
+  useEffect(() => {
+    const today = new Date().toDateString();
+    if (globalStats.lastStudyDate !== today) {
+      const yesterday = new Date(Date.now() - 86400000).toDateString();
+      const newConsecutiveDays = globalStats.lastStudyDate === yesterday
+        ? globalStats.consecutiveDays + 1
+        : 1;
+      setGlobalStats(prev => {
+        const updated = { ...prev, consecutiveDays: newConsecutiveDays, lastStudyDate: today };
+        saveGlobalStats(updated);
+        return updated;
+      });
     }
-  };
+  }, []);
 
-  const showToast = (msg) => {
-    setToast({ visible: true, message: msg });
-    setTimeout(() => setToast({ visible: false, message: '' }), 3000);
-  };
-
-  const handleUpdateStats = (type, usedHint, brawlMistakes = 0) => {
+  const handleUpdateStats = useCallback((type, usedHint, brawlMistakes = 0, brawlTime = 0) => {
     setStats(prev => {
       const next = { ...prev };
+      const oldScore = prev.totalScore;
+
       if (type === 'win') {
         next.totalWords += 1;
-        next.totalScore = getGlobalScore();
-        if (!usedHint) next.currentStreak += 1;
-        else next.currentStreak = 0;
+        next.totalScore = getGlobalScore(currentBookId);
+        if (!usedHint) {
+          next.currentStreak += 1;
+          if (next.currentStreak > next.maxStreak) {
+            next.maxStreak = next.currentStreak;
+          }
+          if (next.currentStreak >= 20 && prev.currentStreak === 0) {
+            next.comebackAchieved = true;
+          }
+        } else {
+          next.currentStreak = 0;
+        }
       } else if (type === 'mistake') {
         next.totalMistakes += 1;
         next.currentStreak = 0;
@@ -148,90 +186,164 @@ export default function App() {
       } else if (type === 'brawl_complete') {
         next.brawlsCompleted = (next.brawlsCompleted || 0) + 1;
         if (brawlMistakes < 3) next.perfectBrawls = (next.perfectBrawls || 0) + 1;
+        if (brawlTime && brawlTime < 600) next.speedBrawls = (next.speedBrawls || 0) + 1;
+      } else if (type === 'notebook_used') {
+        next.notebookUsed = (next.notebookUsed || 0) + 1;
+      } else if (type === 'unit_complete') {
+        next.unitsCompleted = (next.unitsCompleted || 0) + 1;
       }
+
+      if (hasLevelUp(oldScore, next.totalScore)) {
+        const newLevel = getCurrentLevel(next.totalScore);
+        setLevelUpModal(newLevel);
+      }
+
       return next;
     });
-  };
+  }, [currentBookId]);
 
-  const handleTitleClick = () => {
+  const handleTitleClick = useCallback(() => {
     setStats(s => ({ ...s, titleClicks: (s.titleClicks || 0) + 1 }));
-  };
+  }, []);
 
-  const handleBrawlClick = () => {
-    // 优先使用 State 中的缓存
-    if (brawlState && window.confirm(`发现上次大乱斗进度（第 ${brawlState.currentIndex + 1} 关），是否继续？`)) {
+  const handleBrawlClick = useCallback(async () => {
+    if (brawlState && brawlState.words) {
+      const confirmed = await confirmModal.show(
+        `发现上次大乱斗进度（第 ${brawlState.currentIndex + 1} 关），是否继续？`,
+        { title: '恢复进度', confirmText: '继续', cancelText: '重新开始' }
+      );
+      if (confirmed) {
+        setGameMode('brawl');
+        sessionStartTimeRef.current = Date.now();
+        return;
+      }
+    }
+
+    const result = startNewBrawl();
+    if (result.success) {
       setGameMode('brawl');
+      sessionStartTimeRef.current = Date.now();
     } else {
-      startNewBrawl();
+      notify.error('没有可用的单词进行大乱斗', {
+        description: '请检查单词管理设置，确保有激活的单词'
+      });
     }
-  };
+  }, [brawlState, startNewBrawl, confirmModal]);
 
-  const startNewBrawl = () => {
-    const allWords = Object.values(allWordsData).flat().filter(w => w.isActive !== false);
-    if (allWords.length === 0) {
-      alert("没有可用的单词进行大乱斗，请检查单词管理设置。");
+  const handleBrawlProgressUpdate = useCallback((newState) => {
+    updateBrawlProgress(newState);
+  }, [updateBrawlProgress]);
+
+  const startNotebookMode = useCallback(() => {
+    refreshNotebookWords();
+    if (notebookWords.length === 0) {
+      notify.success('太棒了！暂时没有需要复习的单词', {
+        description: '系统会根据记忆曲线，自动安排下次复习时间'
+      });
       return;
     }
-    const brawlWords = shuffleArray(allWords).slice(0, 30);
-    const newState = { words: brawlWords, currentIndex: 0, score: 0 };
-    saveBrawlProgress(newState);
-    setBrawlState(newState); // 关键：更新 State
-    setGameMode('brawl');
-  };
-
-  // [BugFix] 更新大乱斗进度的回调，同时更新 LS 和 State
-  const handleBrawlProgressUpdate = (newState) => {
-    saveBrawlProgress(newState);
-    setBrawlState(newState);
-  };
-
-  const startNotebookMode = () => {
-    const db = getMistakes();
-    const now = Date.now();
-    const dueWords = Object.values(db).filter(w => w.nextReview <= now);
-    if (dueWords.length === 0) {
-      alert("太棒了！暂时没有需要复习的单词。\n\n系统会根据你的记忆曲线，自动安排下次复习时间。");
-      return;
-    }
+    handleUpdateStats('notebook_used');
     setGameMode('notebook');
-  };
+    sessionStartTimeRef.current = Date.now();
+  }, [notebookWords.length, handleUpdateStats, refreshNotebookWords]);
 
-  const handleUpdateWords = (uid, w) => {
-    const n = { ...allWordsData, [uid]: w };
-    setAllWordsData(n);
-    saveWordsData(n);
-  };
+  const handleUpdateWords = useCallback((unitId, words) => {
+    updateUnitWords(unitId, words);
+  }, [updateUnitWords]);
 
-  const handleUpdateSettings = (s) => {
-    setSettingsState(s);
-    saveSettings(s);
-  };
+  const handleUpdateSettings = useCallback((newSettings) => {
+    saveSettings(newSettings);
+    setSettingsState(newSettings);
+  }, []);
 
-  const handleResetData = () => {
+  const handleResetData = useCallback(() => {
     localStorage.clear();
     window.location.reload();
-  };
+  }, []);
 
-  const renderContent = () => {
+  const handleGameComplete = useCallback((mode) => {
+    let brawlTime = 0;
+    if (mode === 'brawl' && sessionStartTimeRef.current) {
+      brawlTime = (Date.now() - sessionStartTimeRef.current) / 1000;
+      handleUpdateStats('brawl_complete', false, 0, brawlTime);
+    }
+    notify.success('恭喜通关！', {
+      icon: '🎉'
+    });
+    setGameMode(null);
+    if (sessionStartTimeRef.current) {
+      const minutes = Math.round((Date.now() - sessionStartTimeRef.current) / 60000);
+      setSessionMinutes(minutes);
+      setGlobalStats(prev => {
+        const updated = { ...prev, totalSessionMinutes: prev.totalSessionMinutes + minutes };
+        saveGlobalStats(updated);
+        return updated;
+      });
+      sessionStartTimeRef.current = null;
+    }
+  }, [handleUpdateStats]);
 
+  const renderHomePage = () => (
+    <ErrorBoundary>
+      <div className="fixed top-4 left-4 z-50">
+        <button
+          onClick={() => setShowTrophyWall(true)}
+          className="flex items-center gap-2 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-400 text-white px-5 py-3 rounded-full font-bold shadow-lg border-2 border-pink-300/50 hover:scale-105 transition-all duration-300"
+        >
+          <Trophy className="w-5 h-5 fill-white" />
+          <span className="text-lg">📖</span>
+          <span className="text-lg">{unlockedAchievements.length}</span>
+        </button>
+      </div>
 
+      <div className="fixed top-4 right-4 z-50">
+        <button
+          onClick={() => setShowSettings(true)}
+          className="bg-white text-slate-500 p-2 rounded-full shadow-sm border hover:scale-105 transition-transform"
+        >
+          <Settings />
+        </button>
+      </div>
+
+      <Header
+        currentBook={currentBook}
+        currentBookId={currentBookId}
+        onSwitchBook={handleSwitchBook}
+        onTitleClick={handleTitleClick}
+      />
+
+      <LevelCard totalScore={stats.totalScore} />
+
+      <SpecialModes
+        dueCount={dueCount}
+        onNotebookClick={startNotebookMode}
+        onBrawlClick={handleBrawlClick}
+      />
+
+      <UnitGrid
+        units={unitMetadata}
+        getUnitWordCount={getUnitWordCount}
+        onUnitSelect={setSelectedUnit}
+      />
+    </ErrorBoundary>
+  );
+
+  const renderGameMode = () => {
     if (gameMode === 'notebook') {
-      const db = getMistakes();
-      const now = Date.now();
-      const words = Object.values(db).filter(w => w.nextReview <= now);
-      if (words.length === 0 && dueCount > 0) {
-        alert("恭喜！所有待复习单词已完成！");
-        setGameMode(null);
+      if (notebookWords.length === 0) {
         return null;
       }
       return (
         <ErrorBoundary>
           <GameScreen
-            words={words}
+            words={notebookWords}
             mode={gameMode}
             onBack={() => setGameMode(null)}
             settings={settings}
             onUpdateStats={handleUpdateStats}
+            bookId={currentBookId}
+            isMistakeMode={true}
+            onComplete={() => handleGameComplete('notebook')}
           />
         </ErrorBoundary>
       );
@@ -244,13 +356,15 @@ export default function App() {
           <GameScreen
             words={brawlState.words}
             mode="brawl"
-            onBack={() => setGameMode(null)}
+            onBack={() => { endBrawl(); setGameMode(null); }}
             initialIndex={brawlState.currentIndex}
             initialScore={brawlState.score}
             preShuffled={true}
             onProgressUpdate={handleBrawlProgressUpdate}
             settings={settings}
             onUpdateStats={handleUpdateStats}
+            bookId={currentBookId}
+            onComplete={() => handleGameComplete('brawl')}
           />
         </ErrorBoundary>
       );
@@ -266,132 +380,51 @@ export default function App() {
             onBack={() => setGameMode(null)}
             settings={settings}
             onUpdateStats={handleUpdateStats}
+            bookId={currentBookId}
+            onComplete={() => handleGameComplete(gameMode)}
           />
         </ErrorBoundary>
       );
     }
 
-    // 主页
-    return (
-      <ErrorBoundary>
-        {/* 奖杯按钮 */}
-        <div className="fixed top-4 left-4 z-50">
-          <button
-            onClick={() => setShowTrophyWall(true)}
-            className="flex items-center gap-2 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-full font-bold shadow-sm border-2 border-yellow-200 hover:scale-105 transition"
-          >
-            <Trophy className="w-5 h-5 fill-yellow-500" />
-            <span>{unlockedAchievements.length}</span>
-          </button>
-        </div>
-
-        {/* 设置按钮 */}
-        <div className="fixed top-4 right-4 z-50">
-          <button
-            onClick={() => setShowSettings(true)}
-            className="bg-white text-slate-500 p-2 rounded-full shadow-sm border"
-          >
-            <Settings />
-          </button>
-        </div>
-
-        {/* 标题 */}
-        <header className="max-w-4xl mx-auto mb-8 pt-16 text-center">
-          <h1
-            onClick={handleTitleClick}
-            className="text-3xl md:text-4xl font-extrabold text-sky-600 mb-2 flex items-center justify-center gap-3 cursor-pointer select-none active:scale-95 transition"
-          >
-            <BookOpen className="w-10 h-10" /> 英语单词大冒险
-          </h1>
-          <p className="text-sky-800 text-lg">三年级上册 (Book 3A)</p>
-        </header>
-
-        {/* 特殊模式卡片 */}
-        <div className="max-w-4xl mx-auto mb-8 px-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* 错题本 */}
-          <div
-            onClick={startNotebookMode}
-            className={`relative bg-white rounded-3xl p-6 shadow-lg border-2 border-red-100 cursor-pointer hover:scale-[1.02] transition flex items-center gap-4 ${dueCount === 0 ? 'opacity-70 grayscale' : ''}`}
-          >
-            <div className="bg-red-100 p-4 rounded-full">
-              <BookX className="w-8 h-8 text-red-500" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-800">单词加油站</h3>
-              <p className="text-sm text-gray-500">
-                {dueCount > 0 ? `有 ${dueCount} 个单词需要复习` : '暂时没有需要复习的单词'}
-              </p>
-            </div>
-            {dueCount > 0 && (
-              <span className="absolute top-4 right-4 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-bounce">
-                {dueCount}
-              </span>
-            )}
-          </div>
-
-          {/* 大乱斗 */}
-          <div
-            onClick={handleBrawlClick}
-            className="relative bg-gradient-to-r from-violet-600 to-indigo-600 rounded-3xl p-6 shadow-lg cursor-pointer hover:scale-[1.02] transition flex items-center gap-4 text-white overflow-hidden"
-          >
-            <div className="absolute right-[-20px] top-[-20px] opacity-20">
-              <Gamepad2 className="w-32 h-32" />
-            </div>
-            <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm">
-              <Zap className="w-8 h-8 text-yellow-300" />
-            </div>
-            <div className="z-10">
-              <h3 className="text-xl font-bold flex items-center gap-2">
-                全明星大乱斗
-                <span className="bg-yellow-400 text-yellow-900 text-[10px] px-1.5 py-0.5 rounded font-bold">30词</span>
-              </h3>
-              <p className="text-sm text-indigo-100">随机抽取，极速挑战！</p>
-            </div>
-          </div>
-        </div>
-
-        {/* 单元卡片 */}
-        <main className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-4">
-          {UNIT_METADATA.map(unit => (
-            <div
-              key={unit.id}
-              onClick={() => setSelectedUnit(unit)}
-              className={`group cursor-pointer rounded-3xl p-6 shadow-lg border-b-8 transition-all hover:-translate-y-2 hover:shadow-xl bg-white ${unit.themeColor.split(' ')[1]} active:scale-95`}
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-inner ${unit.themeColor.split(' ')[0]} ${unit.themeColor.split(' ')[2]}`}>
-                  <unit.icon className="w-7 h-7" />
-                </div>
-                <span className="text-xs font-bold bg-white/50 text-gray-600 px-2 py-1 rounded-lg">
-                  第 {unit.id} 单元
-                </span>
-              </div>
-              <h3 className="text-xl font-bold text-gray-800">{unit.title}</h3>
-              <p className="text-gray-500 text-sm font-medium mb-4">{unit.subtitle}</p>
-              <div className="flex justify-between items-center mt-6 pt-4 border-t border-black/5">
-                <div className="flex gap-1 text-xs font-bold text-gray-400">
-                  <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                  {(allWordsData[unit.id] || []).filter(w => w.isActive !== false).length} 词
-                </div>
-                <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-gray-600" />
-              </div>
-            </div>
-          ))}
-        </main>
-      </ErrorBoundary>
-    );
+    return null;
   };
 
   return (
-    <div className="min-h-[100dvh] w-full bg-sky-50 font-sans pb-20">
+    <div className="min-h-[100dvh] w-full bg-gradient-to-br from-xiaohongshu-light via-white to-xiaohongshu-light font-sans pb-20">
       <ErrorBoundary>
-        {renderContent()}
+        {gameMode ? renderGameMode() : renderHomePage()}
 
-        <ToastNotification
-          isVisible={toast.visible}
-          message={toast.message}
-          onClose={() => setToast({ ...toast, visible: false })}
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            style: {
+              background: '#1e293b',
+              color: '#fff',
+              borderRadius: '9999px',
+              padding: '12px 20px',
+              fontSize: '14px',
+              fontWeight: 500
+            },
+            success: {
+              style: {
+                background: '#059669'
+              }
+            },
+            error: {
+              style: {
+                background: '#dc2626'
+              }
+            },
+            info: {
+              style: {
+                background: '#2563eb'
+              }
+            }
+          }}
         />
+
+        {confirmModal.modal}
 
         <TrophyWallModal
           isOpen={showTrophyWall}
@@ -424,6 +457,11 @@ export default function App() {
             onClose={() => setShowManager(false)}
           />
         )}
+
+        <LevelUpModal
+          level={levelUpModal}
+          onClose={() => setLevelUpModal(null)}
+        />
       </ErrorBoundary>
     </div>
   );

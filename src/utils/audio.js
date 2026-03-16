@@ -105,3 +105,189 @@ export const playWordAudio = async (word) => {
         window.speechSynthesis.speak(utterance);
     }
 };
+
+/**
+ * 播放错误的"嘟嘟"声 (柔和低沉)
+ */
+export const playErrorSound = () => {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(200, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(150, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.03, ctx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+        console.warn("Error sound failed", e);
+    }
+};
+
+/**
+ * 播放字母点击的"哒"声 (清脆短促)
+ */
+export const playClickSound = () => {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.02, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.05);
+    } catch (e) {
+        console.warn("Click sound failed", e);
+    }
+};
+
+/**
+ * 播放成就解锁的庆祝音乐 (欢快上升)
+ */
+export const playAchievementSound = () => {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        // 播放三连音上升旋律
+        const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+        notes.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+            gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.1);
+            gain.gain.linearRampToValueAtTime(0.03, ctx.currentTime + i * 0.1 + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.3);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.1);
+            osc.stop(ctx.currentTime + i * 0.1 + 0.3);
+        });
+    } catch (e) {
+        console.warn("Achievement sound failed", e);
+    }
+};
+
+/**
+ * 播放提示音的"布灵"声 (神秘柔和)
+ */
+export const playHintSound = () => {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(900, ctx.currentTime + 0.1);
+        osc.frequency.linearRampToValueAtTime(700, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0, ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.3);
+    } catch (e) {
+        console.warn("Hint sound failed", e);
+    }
+};
+
+/**
+ * 播放升级音效 (宏大上升)
+ */
+export const playLevelUpSound = () => {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25];
+        notes.forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.08);
+            gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.08);
+            gain.gain.linearRampToValueAtTime(0.04, ctx.currentTime + i * 0.08 + 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 0.5);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(ctx.currentTime + i * 0.08);
+            osc.stop(ctx.currentTime + i * 0.08 + 0.5);
+        });
+    } catch (e) {
+        console.warn("Level up sound failed", e);
+    }
+};
+
+let preloadQueue = [];
+let isPreloading = false;
+const MAX_CACHE_SIZE = 100;
+
+export const preloadWordAudio = (word) => {
+    if (!word || audioCache.has(word.toLowerCase().trim())) return;
+    preloadQueue.push(word.toLowerCase().trim());
+    processPreloadQueue();
+};
+
+const processPreloadQueue = async () => {
+    if (isPreloading || preloadQueue.length === 0) return;
+    isPreloading = true;
+
+    while (preloadQueue.length > 0) {
+        if (audioCache.size >= MAX_CACHE_SIZE) {
+            const firstKey = audioCache.keys().next().value;
+            audioCache.delete(firstKey);
+        }
+
+        const word = preloadQueue.shift();
+        if (audioCache.has(word)) continue;
+
+        const youdaoUrl = `https://dict.youdao.com/dictvoice?audio=${encodeURIComponent(word)}&type=0`;
+        
+        try {
+            await new Promise((resolve, reject) => {
+                const audio = new Audio(youdaoUrl);
+                audio.oncanplaythrough = () => {
+                    audioCache.set(word, youdaoUrl);
+                    resolve();
+                };
+                audio.onerror = reject;
+                setTimeout(reject, 1500);
+                audio.load();
+            });
+        } catch {
+            // 预加载失败，静默处理
+        }
+    }
+
+    isPreloading = false;
+};
+
+export const preloadWords = (words) => {
+    if (!Array.isArray(words)) return;
+    words.forEach(w => {
+        if (w && w.word) preloadWordAudio(w.word);
+    });
+};
+
+export const clearAudioCache = () => {
+    audioCache.clear();
+    preloadQueue = [];
+};
+
+export const getCacheSize = () => audioCache.size;
+

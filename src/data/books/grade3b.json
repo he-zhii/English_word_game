@@ -1,0 +1,13 @@
+{
+  "id": "grade3b",
+  "title": "三年级下册",
+  "subtitle": "Book 3B",
+  "units": [
+    { "id": 1, "title": "认识朋友", "subtitle": "Getting to Know", "themeColor": "bg-blue-100 border-blue-300 text-blue-600", "icon": "UserPlus" },
+    { "id": 2, "title": "外貌特征", "subtitle": "Appearance", "themeColor": "bg-purple-100 border-purple-300 text-purple-600", "icon": "Smile" },
+    { "id": 3, "title": "学习用品", "subtitle": "School Supplies", "themeColor": "bg-teal-100 border-teal-300 text-teal-600", "icon": "Pencil" },
+    { "id": 4, "title": "美食天地", "subtitle": "Food & Drinks", "themeColor": "bg-amber-100 border-amber-300 text-amber-600", "icon": "UtensilsCrossed" },
+    { "id": 5, "title": "物品方位", "subtitle": "Positions", "themeColor": "bg-cyan-100 border-cyan-300 text-cyan-600", "icon": "MapPin" },
+    { "id": 6, "title": "数字扩展", "subtitle": "Numbers 11-20", "themeColor": "bg-pink-100 border-pink-300 text-pink-600", "icon": "Calculator" }
+  ]
+}

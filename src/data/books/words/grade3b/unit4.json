@@ -1,0 +1,19 @@
+[
+    { "word": "breakfast", "cn": "早餐；早饭", "emoji": "🍳", "syllables": ["break", "fast"] },
+    { "word": "time", "cn": "时间", "emoji": "⏰", "syllables": ["time"] },
+    { "word": "bread", "cn": "面包", "emoji": "🍞", "syllables": ["bread"] },
+    { "word": "egg", "cn": "（作食物用的）蛋；鸡蛋", "emoji": "🥚", "syllables": ["egg"] },
+    { "word": "milk", "cn": "（牛或羊等的）奶", "emoji": "🥛", "syllables": ["milk"] },
+    { "word": "noodle", "cn": "（常用复数）面条", "emoji": "🍜", "syllables": ["noo", "dle"] },
+    { "word": "juice", "cn": "果汁", "emoji": "🧃", "syllables": ["juice"] },
+    { "word": "rice", "cn": "大米", "emoji": "🍚", "syllables": ["rice"] },
+    { "word": "meat", "cn": "肉", "emoji": "🥩", "syllables": ["meat"] },
+    { "word": "vegetable", "cn": "蔬菜", "emoji": "🥬", "syllables": ["veg", "e", "ta", "ble"] },
+    { "word": "healthy", "cn": "健康的", "emoji": "💪", "syllables": ["health", "y"] },
+    { "word": "plate", "cn": "盘子", "emoji": "🍽️", "syllables": ["plate"] },
+    { "word": "soup", "cn": "汤", "emoji": "🥣", "syllables": ["soup"] },
+    { "word": "fruit", "cn": "水果", "emoji": "🍇", "syllables": ["fruit"] },
+    { "word": "colourful", "cn": "五彩缤纷的", "emoji": "🌈", "syllables": ["col", "our", "ful"] },
+    { "word": "candy", "cn": "糖果", "emoji": "🍬", "syllables": ["can", "dy"] },
+    { "word": "yummy", "cn": "很好吃的", "emoji": "😋", "syllables": ["yum", "my"] }
+]

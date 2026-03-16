@@ -1,0 +1,15 @@
+[
+    { "word": "fifteen", "cn": "十五", "emoji": "🔢", "syllables": ["fif", "teen"] },
+    { "word": "twelve", "cn": "十二", "emoji": "🔢", "syllables": ["twelve"] },
+    { "word": "fourteen", "cn": "十四", "emoji": "🔢", "syllables": ["four", "teen"] },
+    { "word": "thirteen", "cn": "十三", "emoji": "🔢", "syllables": ["thir", "teen"] },
+    { "word": "eleven", "cn": "十一", "emoji": "🔢", "syllables": ["e", "lev", "en"] },
+    { "word": "twenty", "cn": "二十", "emoji": "🔢", "syllables": ["twen", "ty"] },
+    { "word": "seventeen", "cn": "十七", "emoji": "🔢", "syllables": ["seven", "teen"] },
+    { "word": "sixteen", "cn": "十六", "emoji": "🔢", "syllables": ["six", "teen"] },
+    { "word": "eighteen", "cn": "十八", "emoji": "🔢", "syllables": ["eigh", "teen"] },
+    { "word": "nineteen", "cn": "十九", "emoji": "🔢", "syllables": ["nine", "teen"] },
+    { "word": "piggy bank", "cn": "猪形储钱罐", "emoji": "🐷", "syllables": ["pig", "gy", "bank"] },
+    { "word": "pay", "cn": "付费", "emoji": "💳", "syllables": ["pay"] },
+    { "word": "back", "cn": "回到原处", "emoji": "🔙", "syllables": ["back"] }
+]

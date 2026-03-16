@@ -1,0 +1,22 @@
+[
+    { "word": "eraser", "cn": "橡皮", "emoji": "🧽", "syllables": ["e", "ras", "er"] },
+    { "word": "find", "cn": "找到；找回", "emoji": "🔍", "syllables": ["find"] },
+    { "word": "ruler", "cn": "直尺", "emoji": "📏", "syllables": ["rul", "er"] },
+    { "word": "pen", "cn": "钢笔", "emoji": "🖊️", "syllables": ["pen"] },
+    { "word": "pencil", "cn": "铅笔", "emoji": "✏️", "syllables": ["pen", "cil"] },
+    { "word": "book", "cn": "书；书籍", "emoji": "📚", "syllables": ["book"] },
+    { "word": "bag", "cn": "包；袋", "emoji": "🎒", "syllables": ["bag"] },
+    { "word": "paper", "cn": "纸", "emoji": "📄", "syllables": ["pa", "per"] },
+    { "word": "these", "cn": "这些", "emoji": "👆", "syllables": ["these"] },
+    { "word": "see", "cn": "看见", "emoji": "👀", "syllables": ["see"] },
+    { "word": "smell", "cn": "闻（气味）", "emoji": "👃", "syllables": ["smell"] },
+    { "word": "taste", "cn": "尝（味道）", "emoji": "👅", "syllables": ["taste"] },
+    { "word": "hear", "cn": "听见；听到", "emoji": "👂", "syllables": ["hear"] },
+    { "word": "touch", "cn": "触摸；碰", "emoji": "✋", "syllables": ["touch"] },
+    { "word": "learn", "cn": "学；学习", "emoji": "📖", "syllables": ["learn"] },
+    { "word": "nose", "cn": "鼻；鼻子", "emoji": "👃", "syllables": ["nose"] },
+    { "word": "tongue", "cn": "舌；舌头", "emoji": "👅", "syllables": ["tongue"] },
+    { "word": "class", "cn": "课；班级", "emoji": "🏫", "syllables": ["class"] },
+    { "word": "in class", "cn": "在课堂上", "emoji": "👩‍🏫", "syllables": ["in", "class"] },
+    { "word": "computer", "cn": "计算机；电脑", "emoji": "💻", "syllables": ["com", "pu", "ter"] }
+]

@@ -1,0 +1,19 @@
+[
+    { "word": "at", "cn": "在（某处）", "emoji": "📍", "syllables": ["at"] },
+    { "word": "boat", "cn": "小船；舟", "emoji": "🚣", "syllables": ["boat"] },
+    { "word": "cool", "cn": "（因时髦、漂亮且与众不同而）酷的，绝妙的", "emoji": "😎", "syllables": ["cool"] },
+    { "word": "keep", "cn": "保有；留着", "emoji": "✊", "syllables": ["keep"] },
+    { "word": "home", "cn": "家；住所", "emoji": "🏠", "syllables": ["home"] },
+    { "word": "ball", "cn": "球", "emoji": "⚽", "syllables": ["ball"] },
+    { "word": "doll", "cn": "玩偶；玩具娃娃", "emoji": "🪆", "syllables": ["doll"] },
+    { "word": "car", "cn": "小汽车；轿车", "emoji": "🚗", "syllables": ["car"] },
+    { "word": "on", "cn": "（覆盖、附着）在……上", "emoji": "⬆️", "syllables": ["on"] },
+    { "word": "shelf", "cn": "架子", "emoji": "📚", "syllables": ["shelf"] },
+    { "word": "in", "cn": "在……内；在……中", "emoji": "📥", "syllables": ["in"] },
+    { "word": "box", "cn": "盒子", "emoji": "📦", "syllables": ["box"] },
+    { "word": "cap", "cn": "帽子", "emoji": "🧢", "syllables": ["cap"] },
+    { "word": "map", "cn": "地图", "emoji": "🗺️", "syllables": ["map"] },
+    { "word": "under", "cn": "在（或到、通过）……下面", "emoji": "⬇️", "syllables": ["un", "der"] },
+    { "word": "still", "cn": "还是；仍然", "emoji": "⏸️", "syllables": ["still"] },
+    { "word": "put", "cn": "放；安置", "emoji": "📦", "syllables": ["put"] }
+]
