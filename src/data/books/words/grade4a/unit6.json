@@ -1,0 +1,23 @@
+[
+  { "word": "whose", "cn": "谁的", "emoji": "❓", "syllables": ["whose"] },
+  { "word": "sweater", "cn": "毛衣", "emoji": "🧥", "syllables": ["sweater"] },
+  { "word": "sock", "cn": "短袜", "emoji": "🧦", "syllables": ["sock"] },
+  { "word": "mine", "cn": "我的", "emoji": "🙋", "syllables": ["mine"] },
+  { "word": "wear", "cn": "穿；戴", "emoji": "👕", "syllables": ["wear"] },
+  { "word": "shirt", "cn": "衬衫", "emoji": "👔", "syllables": ["shirt"] },
+  { "word": "coat", "cn": "大衣；外套", "emoji": "🧥", "syllables": ["coat"] },
+  { "word": "dress", "cn": "连衣裙", "emoji": "👗", "syllables": ["dress"] },
+  { "word": "which", "cn": "哪一个；哪一些", "emoji": "🤔", "syllables": ["which"] },
+  { "word": "season", "cn": "季节", "emoji": "🗓️", "syllables": ["season"] },
+  { "word": "winter", "cn": "冬天", "emoji": "❄️", "syllables": ["winter"] },
+  { "word": "snow", "cn": "下雪；雪", "emoji": "🌨️", "syllables": ["snow"] },
+  { "word": "get together", "cn": "聚会", "emoji": "🤝", "syllables": ["get", "together"] },
+  { "word": "spring", "cn": "春天", "emoji": "🌱", "syllables": ["spring"] },
+  { "word": "summer", "cn": "夏天", "emoji": "☀️", "syllables": ["summer"] },
+  { "word": "autumn", "cn": "秋天", "emoji": "🍂", "syllables": ["autumn"] },
+  { "word": "T-shirt", "cn": "T恤衫", "emoji": "👕", "syllables": ["T-shirt"] },
+  { "word": "fall", "cn": "落下", "emoji": "🍃", "syllables": ["fall"] },
+  { "word": "leaf", "cn": "叶（复数 leaves）", "emoji": "🍃", "syllables": ["leaf"] },
+  { "word": "glove", "cn": "手套", "emoji": "🧤", "syllables": ["glove"] },
+  { "word": "then", "cn": "然后；那时", "emoji": "➡️", "syllables": ["then"] }
+]

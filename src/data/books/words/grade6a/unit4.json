@@ -1,0 +1,10 @@
+[
+  { "word": "money", "cn": "钱", "emoji": "💰", "syllables": ["mon", "ey"] },
+  { "word": "pocket money", "cn": "零花钱", "emoji": "🪙", "syllables": ["pock", "et", "mon", "ey"] },
+  { "word": "schoolbag", "cn": "书包", "emoji": "🎒", "syllables": ["school", "bag"] },
+  { "word": "goods", "cn": "商品", "emoji": "📦", "syllables": ["goods"] },
+  { "word": "drink", "cn": "饮料", "emoji": "🥤", "syllables": ["drink"] },
+  { "word": "service", "cn": "服务", "emoji": "🛎️", "syllables": ["ser", "vice"] },
+  { "word": "haircut", "cn": "理发；发型", "emoji": "💇", "syllables": ["hair", "cut"] },
+  { "word": "microscope", "cn": "显微镜", "emoji": "🔬", "syllables": ["mi", "cro", "scope"] }
+]

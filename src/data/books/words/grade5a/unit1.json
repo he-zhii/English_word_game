@@ -1,0 +1,20 @@
+[
+  { "word": "team", "cn": "（游戏或运动的）队；（一起工作的）组，班", "emoji": "👥", "syllables": ["team"] },
+  { "word": "player", "cn": "运动员；参赛选手", "emoji": "🏃", "syllables": ["play", "er"] },
+  { "word": "him", "cn": "他", "emoji": "👦", "syllables": ["him"] },
+  { "word": "lovely", "cn": "美丽的；优美的；可爱的", "emoji": "😊", "syllables": ["love", "ly"] },
+  { "word": "clever", "cn": "聪明的；聪颖的", "emoji": "🧠", "syllables": ["clev", "er"] },
+  { "word": "young", "cn": "幼小的；年轻的", "emoji": "🌱", "syllables": ["young"] },
+  { "word": "hard-working", "cn": "工作努力的；辛勤的", "emoji": "💪", "syllables": ["hard", "work", "ing"] },
+  { "word": "science", "cn": "科学；自然科学", "emoji": "🔬", "syllables": ["sci", "ence"] },
+  { "word": "robot", "cn": "机器人", "emoji": "🤖", "syllables": ["ro", "bot"] },
+  { "word": "jump", "cn": "跳；跃", "emoji": "⬆️", "syllables": ["jump"] },
+  { "word": "rope", "cn": "绳；粗绳", "emoji": "🪢", "syllables": ["rope"] },
+  { "word": "piano", "cn": "钢琴", "emoji": "🎹", "syllables": ["pi", "a", "no"] },
+  { "word": "chess", "cn": "国际象棋", "emoji": "♟️", "syllables": ["chess"] },
+  { "word": "front", "cn": "前面", "emoji": "➡️", "syllables": ["front"] },
+  { "word": "easy", "cn": "容易的；轻易的", "emoji": "✅", "syllables": ["ea", "sy"] },
+  { "word": "star", "cn": "歌唱（或表演）明星；星", "emoji": "⭐", "syllables": ["star"] },
+  { "word": "wonderful", "cn": "精彩的；绝妙的", "emoji": "🌟", "syllables": ["won", "der", "ful"] },
+  { "word": "Australia", "cn": "澳大利亚", "emoji": "🇦🇺", "syllables": ["Aus", "tra", "lia"] }
+]

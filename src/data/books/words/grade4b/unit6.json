@@ -1,0 +1,20 @@
+[
+  { "word": "feed", "cn": "给（人或动物）食物；饲养", "emoji": "🍽️", "syllables": ["feed"] },
+  { "word": "pass", "cn": "给；递", "emoji": "🤲", "syllables": ["pass"] },
+  { "word": "pick", "cn": "采；摘", "emoji": "🧺", "syllables": ["pick"] },
+  { "word": "milk", "cn": "挤奶", "emoji": "🥛", "syllables": ["milk"] },
+  { "word": "knife", "cn": "刀", "emoji": "🔪", "syllables": ["knife"] },
+  { "word": "fork", "cn": "餐叉", "emoji": "🍴", "syllables": ["fork"] },
+  { "word": "chopstick", "cn": "筷子（常用复数）", "emoji": "🥢", "syllables": ["chopstick"] },
+  { "word": "waste", "cn": "浪费；废品", "emoji": "🗑️", "syllables": ["waste"] },
+  { "word": "food", "cn": "菜肴；食物", "emoji": "🍲", "syllables": ["food"] },
+  { "word": "delicious", "cn": "美味的；可口的", "emoji": "😋", "syllables": ["delicious"] },
+  { "word": "clear the table", "cn": "收拾餐桌", "emoji": "🧹", "syllables": ["clear", "the", "table"] },
+  { "word": "set the table", "cn": "摆放餐具", "emoji": "🍽️", "syllables": ["set", "the", "table"] },
+  { "word": "bowl", "cn": "碗", "emoji": "🥣", "syllables": ["bowl"] },
+  { "word": "spoon", "cn": "勺；匙；调羹", "emoji": "🥄", "syllables": ["spoon"] },
+  { "word": "supermarket", "cn": "超市", "emoji": "🛒", "syllables": ["supermarket"] },
+  { "word": "herself", "cn": "（用作女性的反身代词）她自己；自己", "emoji": "🙋‍♀️", "syllables": ["herself"] },
+  { "word": "week", "cn": "周；星期", "emoji": "📅", "syllables": ["week"] },
+  { "word": "salad", "cn": "蔬菜沙拉", "emoji": "🥗", "syllables": ["salad"] }
+]

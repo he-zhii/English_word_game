@@ -1,0 +1,16 @@
+[
+  { "word": "enough", "cn": "足够的；充足的；充分的", "emoji": "✅", "syllables": ["e", "nough"] },
+  { "word": "if", "cn": "如果；假若；倘若", "emoji": "🔀", "syllables": ["if"] },
+  { "word": "habit", "cn": "习惯", "emoji": "🔄", "syllables": ["ha", "bit"] },
+  { "word": "show", "cn": "（电视或广播）节目", "emoji": "📺", "syllables": ["show"] },
+  { "word": "phone", "cn": "电话；电话机", "emoji": "📞", "syllables": ["phone"] },
+  { "word": "then", "cn": "那么；因此；既然如此", "emoji": "➡️", "syllables": ["then"] },
+  { "word": "rest", "cn": "休息；放松", "emoji": "🛌", "syllables": ["rest"] },
+  { "word": "take care of", "cn": "爱护；照顾", "emoji": "🤗", "syllables": ["take", "care", "of"] },
+  { "word": "check", "cn": "查看；查明", "emoji": "☑️", "syllables": ["check"] },
+  { "word": "less", "cn": "（与不可数名词连用）较少的；更少的", "emoji": "⬇️", "syllables": ["less"] },
+  { "word": "brush", "cn": "（用刷子）刷净，刷亮，刷平顺", "emoji": "🪥", "syllables": ["brush"] },
+  { "word": "tooth", "cn": "牙；齿（复数 teeth）", "emoji": "🦷", "syllables": ["tooth"] },
+  { "word": "hour", "cn": "小时", "emoji": "🕐", "syllables": ["hour"] },
+  { "word": "free", "cn": "没有安排活动的；空闲的", "emoji": "🆓", "syllables": ["free"] }
+]

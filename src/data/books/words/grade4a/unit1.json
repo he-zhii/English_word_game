@@ -1,0 +1,21 @@
+[
+  { "word": "PE", "cn": "体育（课）", "emoji": "🏃", "syllables": ["PE"] },
+  { "word": "job", "cn": "工作；职业", "emoji": "💼", "syllables": ["job"] },
+  { "word": "doctor", "cn": "医生", "emoji": "🧑‍⚕️", "syllables": ["doctor"] },
+  { "word": "farmer", "cn": "农场主；农民", "emoji": "🧑‍🌾", "syllables": ["farmer"] },
+  { "word": "nurse", "cn": "护士", "emoji": "🧑‍⚕️", "syllables": ["nurse"] },
+  { "word": "office worker", "cn": "公司职员", "emoji": "🧑‍💼", "syllables": ["office", "worker"] },
+  { "word": "factory worker", "cn": "工厂工人", "emoji": "🏭", "syllables": ["factory", "worker"] },
+  { "word": "busy", "cn": "忙碌的", "emoji": "⏳", "syllables": ["busy"] },
+  { "word": "tired", "cn": "疲倦的", "emoji": "😴", "syllables": ["tired"] },
+  { "word": "chore", "cn": "家庭杂务", "emoji": "🧹", "syllables": ["chore"] },
+  { "word": "cook", "cn": "烹饪；煮", "emoji": "🍳", "syllables": ["cook"] },
+  { "word": "clean", "cn": "打扫；干净的", "emoji": "🧼", "syllables": ["clean"] },
+  { "word": "room", "cn": "房间", "emoji": "🚪", "syllables": ["room"] },
+  { "word": "look after", "cn": "照顾", "emoji": "🤗", "syllables": ["look", "after"] },
+  { "word": "sweep", "cn": "扫", "emoji": "🧹", "syllables": ["sweep"] },
+  { "word": "floor", "cn": "地板；地面", "emoji": "🟫", "syllables": ["floor"] },
+  { "word": "together", "cn": "在一起；共同", "emoji": "🫶", "syllables": ["together"] },
+  { "word": "people", "cn": "人；人们", "emoji": "👥", "syllables": ["people"] },
+  { "word": "child", "cn": "儿童；小孩（复数 children）", "emoji": "🧒", "syllables": ["child"] }
+]

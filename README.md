@@ -1,6 +1,6 @@
-# 🎮 英语单词大冒险
+# 🏠 糯米单词屋
 
-> 一款面向三年级学生的趣味英语单词拼写学习应用
+> 一款面向小学 1-6 年级的萌宠陪伴式英语单词拼写学习应用
 
 ![React](https://img.shields.io/badge/React-19.2-61DAFB?logo=react)
 ![Vite](https://img.shields.io/badge/Vite-7.2-646CFF?logo=vite)

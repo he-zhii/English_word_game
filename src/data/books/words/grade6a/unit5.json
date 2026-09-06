@@ -1,0 +1,21 @@
+[
+  { "word": "lucky", "cn": "幸运的", "emoji": "🍀", "syllables": ["luck", "y"] },
+  { "word": "half", "cn": "一半", "emoji": "✂️", "syllables": ["half"] },
+  { "word": "save up", "cn": "攒钱", "emoji": "💵", "syllables": ["save", "up"] },
+  { "word": "sale", "cn": "特价销售；出售", "emoji": "🏷️", "syllables": ["sale"] },
+  { "word": "ticket", "cn": "票", "emoji": "🎫", "syllables": ["tick", "et"] },
+  { "word": "manage", "cn": "管理", "emoji": "📊", "syllables": ["man", "age"] },
+  { "word": "sell", "cn": "出售；售卖", "emoji": "💲", "syllables": ["sell"] },
+  { "word": "jar", "cn": "罐子", "emoji": "🏺", "syllables": ["jar"] },
+  { "word": "for example", "cn": "例如", "emoji": "💡", "syllables": ["for", "ex", "am", "ple"] },
+  { "word": "astronaut", "cn": "航天员；宇航员", "emoji": "🧑‍🚀", "syllables": ["as", "tro", "naut"] },
+  { "word": "spaceship", "cn": "宇宙飞船", "emoji": "🚀", "syllables": ["space", "ship"] },
+  { "word": "month", "cn": "月；月份", "emoji": "📅", "syllables": ["month"] },
+  { "word": "taikonaut", "cn": "中国航天员", "emoji": "🧑‍🚀", "syllables": ["tai", "ko", "naut"] },
+  { "word": "cloth", "cn": "（一块）布；织物", "emoji": "🧽", "syllables": ["cloth"] },
+  { "word": "toothpaste", "cn": "牙膏", "emoji": "🪥", "syllables": ["tooth", "paste"] },
+  { "word": "question", "cn": "问题", "emoji": "❓", "syllables": ["ques", "tion"] },
+  { "word": "sunset", "cn": "日落", "emoji": "🌇", "syllables": ["sun", "set"] },
+  { "word": "time", "cn": "次；回", "emoji": "🕐", "syllables": ["time"] },
+  { "word": "Mars", "cn": "火星", "emoji": "🪐", "syllables": ["Mars"] }
+]

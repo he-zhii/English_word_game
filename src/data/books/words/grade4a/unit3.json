@@ -1,0 +1,20 @@
+[
+  { "word": "afternoon", "cn": "下午", "emoji": "🌇", "syllables": ["afternoon"] },
+  { "word": "there", "cn": "（表示存在或发生）；在那里", "emoji": "📍", "syllables": ["there"] },
+  { "word": "playground", "cn": "游乐场；操场", "emoji": "🛝", "syllables": ["playground"] },
+  { "word": "park", "cn": "公园", "emoji": "🏞️", "syllables": ["park"] },
+  { "word": "over", "cn": "在……的远端（或对面）", "emoji": "➡️", "syllables": ["over"] },
+  { "word": "hospital", "cn": "医院", "emoji": "🏥", "syllables": ["hospital"] },
+  { "word": "shop", "cn": "商店", "emoji": "🏪", "syllables": ["shop"] },
+  { "word": "toilet", "cn": "厕所；卫生间", "emoji": "🚻", "syllables": ["toilet"] },
+  { "word": "bus stop", "cn": "公共汽车站", "emoji": "🚏", "syllables": ["bus", "stop"] },
+  { "word": "library", "cn": "图书馆", "emoji": "📚", "syllables": ["library"] },
+  { "word": "sport", "cn": "体育运动", "emoji": "🏅", "syllables": ["sport"] },
+  { "word": "walk", "cn": "散步；行走", "emoji": "🚶", "syllables": ["walk"] },
+  { "word": "community", "cn": "社区", "emoji": "🏘️", "syllables": ["community"] },
+  { "word": "favourite", "cn": "最喜欢的", "emoji": "❤️", "syllables": ["favourite"] },
+  { "word": "place", "cn": "地方；场所", "emoji": "📌", "syllables": ["place"] },
+  { "word": "photo", "cn": "照片", "emoji": "📷", "syllables": ["photo"] },
+  { "word": "story", "cn": "故事", "emoji": "📖", "syllables": ["story"] },
+  { "word": "buy", "cn": "购买", "emoji": "🛒", "syllables": ["buy"] }
+]

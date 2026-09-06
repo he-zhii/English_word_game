@@ -1,6 +1,6 @@
 {
-  "name": "english-word-game",
-  "productName": "英语单词大冒险",
+  "name": "nuomi-word-house",
+  "productName": "糯米单词屋",
   "private": true,
   "version": "1.0.0",
   "main": "electron.js",
@@ -35,8 +35,8 @@
     "vite": "^7.2.4"
   },
   "build": {
-    "appId": "com.english-word-game",
-    "productName": "英语单词大冒险",
+    "appId": "com.nuomi-word-house",
+    "productName": "糯米单词屋",
     "directories": {
       "output": "release"
     },

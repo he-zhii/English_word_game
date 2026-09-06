@@ -1,0 +1,19 @@
+[
+  { "word": "sad", "cn": "悲哀的；难过的", "emoji": "😢", "syllables": ["sad"] },
+  { "word": "matter", "cn": "事情；问题", "emoji": "❓", "syllables": ["mat", "ter"] },
+  { "word": "project", "cn": "项目；方案", "emoji": "📋", "syllables": ["pro", "ject"] },
+  { "word": "centre", "cn": "中心", "emoji": "🎯", "syllables": ["cen", "tre"] },
+  { "word": "agree", "cn": "同意；赞成", "emoji": "🤝", "syllables": ["a", "gree"] },
+  { "word": "finish", "cn": "完成；做好", "emoji": "🏁", "syllables": ["fin", "ish"] },
+  { "word": "Monday", "cn": "星期一", "emoji": "📅", "syllables": ["Mon", "day"] },
+  { "word": "worried", "cn": "担心的；担忧的", "emoji": "😟", "syllables": ["wor", "ried"] },
+  { "word": "both", "cn": "两者", "emoji": "👫", "syllables": ["both"] },
+  { "word": "excited", "cn": "激动的；兴奋的", "emoji": "🤩", "syllables": ["ex", "cit", "ed"] },
+  { "word": "wrong", "cn": "错误的", "emoji": "❌", "syllables": ["wrong"] },
+  { "word": "angry", "cn": "愤怒的；生气的", "emoji": "😠", "syllables": ["an", "gry"] },
+  { "word": "afraid", "cn": "担心；害怕", "emoji": "😨", "syllables": ["a", "fraid"] },
+  { "word": "parent", "cn": "父亲；母亲", "emoji": "👨‍👩‍👧", "syllables": ["pa", "rent"] },
+  { "word": "ask", "cn": "问；询问", "emoji": "🙋", "syllables": ["ask"] },
+  { "word": "move", "cn": "搬家；移动", "emoji": "🚚", "syllables": ["move"] },
+  { "word": "yours", "cn": "您的（用于书信结尾的签名前）", "emoji": "✉️", "syllables": ["yours"] }
+]

@@ -1,0 +1,9 @@
+[
+  { "word": "hungry", "cn": "感到饿的", "emoji": "🤤", "syllables": ["hun", "gry"] },
+  { "word": "beef", "cn": "牛肉", "emoji": "🥩", "syllables": ["beef"] },
+  { "word": "ice cream", "cn": "（一份）冰激凌", "emoji": "🍦", "syllables": ["ice", "cream"] },
+  { "word": "little", "cn": "少许；一点", "emoji": "🤏", "syllables": ["lit", "tle"] },
+  { "word": "dumpling", "cn": "饺子；汤圆", "emoji": "🥟", "syllables": ["dump", "ling"] },
+  { "word": "tea", "cn": "茶叶；茶；茶水", "emoji": "🍵", "syllables": ["tea"] },
+  { "word": "hamburger", "cn": "汉堡包；汉堡牛肉饼", "emoji": "🍔", "syllables": ["ham", "bur", "ger"] }
+]

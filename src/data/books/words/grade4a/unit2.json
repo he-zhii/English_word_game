@@ -1,0 +1,16 @@
+[
+  { "word": "his", "cn": "他的", "emoji": "🙋‍♂️", "syllables": ["his"] },
+  { "word": "strong", "cn": "强壮的", "emoji": "💪", "syllables": ["strong"] },
+  { "word": "hair", "cn": "头发", "emoji": "💇", "syllables": ["hair"] },
+  { "word": "also", "cn": "也", "emoji": "➕", "syllables": ["also"] },
+  { "word": "kind", "cn": "友好的", "emoji": "😊", "syllables": ["kind"] },
+  { "word": "quiet", "cn": "文静的", "emoji": "🤫", "syllables": ["quiet"] },
+  { "word": "best", "cn": "最好的", "emoji": "🏆", "syllables": ["best"] },
+  { "word": "read", "cn": "阅读", "emoji": "📖", "syllables": ["read"] },
+  { "word": "Chinese", "cn": "中文；中国人；中国的", "emoji": "🇨🇳", "syllables": ["Chinese"] },
+  { "word": "play", "cn": "玩耍", "emoji": "🎮", "syllables": ["play"] },
+  { "word": "game", "cn": "游戏", "emoji": "🎲", "syllables": ["game"] },
+  { "word": "football", "cn": "足球运动", "emoji": "⚽", "syllables": ["football"] },
+  { "word": "basketball", "cn": "篮球运动", "emoji": "🏀", "syllables": ["basketball"] },
+  { "word": "always", "cn": "总是", "emoji": "🔁", "syllables": ["always"] }
+]

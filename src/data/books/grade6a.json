@@ -1,0 +1,13 @@
+{
+  "id": "grade6a",
+  "title": "六年级上册",
+  "subtitle": "Book 6A",
+  "units": [
+    { "id": 1, "title": "中国名胜", "subtitle": "Places in China", "themeColor": "bg-emerald-100 border-emerald-300 text-emerald-600", "icon": "G6U1China" },
+    { "id": 2, "title": "世界名胜", "subtitle": "World Landmarks", "themeColor": "bg-violet-100 border-violet-300 text-violet-600", "icon": "G6U2World" },
+    { "id": 3, "title": "运动会", "subtitle": "Sports Day", "themeColor": "bg-rose-100 border-rose-300 text-rose-600", "icon": "G6U3Sports" },
+    { "id": 4, "title": "物品与服务", "subtitle": "Things & Services", "themeColor": "bg-sky-100 border-sky-300 text-sky-600", "icon": "G6U4Services" },
+    { "id": 5, "title": "太空与节约", "subtitle": "Space & Saving", "themeColor": "bg-amber-100 border-amber-300 text-amber-600", "icon": "G6U5Space" },
+    { "id": 6, "title": "能源与环保", "subtitle": "Energy & Earth", "themeColor": "bg-teal-100 border-teal-300 text-teal-600", "icon": "G6U6Eco" }
+  ]
+}

@@ -10,7 +10,7 @@ function createWindow() {
       contextIsolation: true
     },
     icon: path.join(__dirname, 'public/vite.svg'),
-    title: '英语单词大冒险'
+    title: '糯米单词屋'
   });
 
   // 开发环境加载localhost，生产环境加载打包后的文件

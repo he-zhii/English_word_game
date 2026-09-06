@@ -1,0 +1,17 @@
+[
+  { "word": "restaurant", "cn": "餐馆；餐厅", "emoji": "🍽️", "syllables": ["res", "tau", "rant"] },
+  { "word": "airport", "cn": "机场", "emoji": "✈️", "syllables": ["air", "port"] },
+  { "word": "New Zealand", "cn": "新西兰", "emoji": "🇳🇿", "syllables": ["New", "Zea", "land"] },
+  { "word": "Hong Kong-Zhuhai-Macao Bridge", "cn": "港珠澳大桥", "emoji": "🌉", "syllables": ["Hong", "Kong", "Zhu", "hai", "Ma", "cao", "Bridge"] },
+  { "word": "Paris", "cn": "巴黎", "emoji": "🇫🇷", "syllables": ["Pa", "ris"] },
+  { "word": "Eiffel Tower", "cn": "埃菲尔铁塔", "emoji": "🗼", "syllables": ["Ei", "ffel", "Tow", "er"] },
+  { "word": "Terracotta Warriors", "cn": "兵马俑", "emoji": "🗿", "syllables": ["Ter", "ra", "cot", "ta", "War", "riors"] },
+  { "word": "Jinggangshan Revolution Museum", "cn": "井冈山革命博物馆", "emoji": "🏛️", "syllables": ["Jing", "gang", "shan", "Re", "vo", "lu", "tion", "Mu", "se", "um"] },
+  { "word": "the Red Army", "cn": "红军", "emoji": "⭐", "syllables": ["the", "Red", "Ar", "my"] },
+  { "word": "paste", "cn": "粘贴", "emoji": "📌", "syllables": ["paste"] },
+  { "word": "dress", "cn": "穿衣服", "emoji": "👗", "syllables": ["dress"] },
+  { "word": "gala", "cn": "演出；庆典", "emoji": "🎉", "syllables": ["ga", "la"] },
+  { "word": "count down", "cn": "倒计时", "emoji": "⏳", "syllables": ["count", "down"] },
+  { "word": "marathon", "cn": "马拉松赛跑", "emoji": "🏃", "syllables": ["mar", "a", "thon"] },
+  { "word": "as", "cn": "作为", "emoji": "🔀", "syllables": ["as"] }
+]

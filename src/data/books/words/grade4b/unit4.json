@@ -1,0 +1,23 @@
+[
+  { "word": "trousers", "cn": "裤子", "emoji": "👖", "syllables": ["trousers"] },
+  { "word": "pair", "cn": "（由连在一起的相似两部分构成的）一条；一副", "emoji": "2️⃣", "syllables": ["pair"] },
+  { "word": "clothes", "cn": "衣服；服装", "emoji": "👚", "syllables": ["clothes"] },
+  { "word": "those", "cn": "（指较远的人或事物）那些", "emoji": "👉", "syllables": ["those"] },
+  { "word": "shorts", "cn": "短裤", "emoji": "🩳", "syllables": ["shorts"] },
+  { "word": "jacket", "cn": "夹克衫；短上衣", "emoji": "🧥", "syllables": ["jacket"] },
+  { "word": "skirt", "cn": "裙子", "emoji": "👗", "syllables": ["skirt"] },
+  { "word": "dear", "cn": "亲爱的", "emoji": "💌", "syllables": ["dear"] },
+  { "word": "expensive", "cn": "昂贵的；价格高的", "emoji": "💎", "syllables": ["expensive"] },
+  { "word": "take", "cn": "买下", "emoji": "🛍️", "syllables": ["take"] },
+  { "word": "cheap", "cn": "便宜的", "emoji": "🏷️", "syllables": ["cheap"] },
+  { "word": "shoe", "cn": "鞋", "emoji": "👟", "syllables": ["shoe"] },
+  { "word": "beautiful", "cn": "美丽的", "emoji": "🌸", "syllables": ["beautiful"] },
+  { "word": "hat", "cn": "帽子", "emoji": "🎩", "syllables": ["hat"] },
+  { "word": "sunglasses", "cn": "太阳镜；墨镜", "emoji": "🕶️", "syllables": ["sunglasses"] },
+  { "word": "free", "cn": "免费的", "emoji": "🆓", "syllables": ["free"] },
+  { "word": "large", "cn": "（服装、食物、日用品等）大型号的", "emoji": "🔠", "syllables": ["large"] },
+  { "word": "size", "cn": "尺码；号", "emoji": "📏", "syllables": ["size"] },
+  { "word": "list", "cn": "清单；目录", "emoji": "📋", "syllables": ["list"] },
+  { "word": "try on", "cn": "试穿", "emoji": "👕", "syllables": ["try", "on"] },
+  { "word": "any", "cn": "任何的；任一的", "emoji": "🔀", "syllables": ["any"] }
+]

@@ -1,0 +1,22 @@
+[
+  { "word": "Wednesday", "cn": "星期三", "emoji": "📅", "syllables": ["Wednes", "day"] },
+  { "word": "subject", "cn": "科目；学科", "emoji": "📚", "syllables": ["sub", "ject"] },
+  { "word": "Monday", "cn": "星期一", "emoji": "📅", "syllables": ["Mon", "day"] },
+  { "word": "Tuesday", "cn": "星期二", "emoji": "📅", "syllables": ["Tues", "day"] },
+  { "word": "Friday", "cn": "星期五", "emoji": "📅", "syllables": ["Fri", "day"] },
+  { "word": "because", "cn": "因为", "emoji": "🔄", "syllables": ["be", "cause"] },
+  { "word": "Thursday", "cn": "星期四", "emoji": "📅", "syllables": ["Thurs", "day"] },
+  { "word": "start", "cn": "开始", "emoji": "▶️", "syllables": ["start"] },
+  { "word": "usually", "cn": "通常地；经常地", "emoji": "🔁", "syllables": ["u", "su", "al", "ly"] },
+  { "word": "weekend", "cn": "周末", "emoji": "🎉", "syllables": ["week", "end"] },
+  { "word": "sometimes", "cn": "有时；间或", "emoji": "🕐", "syllables": ["some", "times"] },
+  { "word": "Saturday", "cn": "星期六", "emoji": "📅", "syllables": ["Sa", "tur", "day"] },
+  { "word": "Sunday", "cn": "星期日", "emoji": "📅", "syllables": ["Sun", "day"] },
+  { "word": "lesson", "cn": "课；一节课", "emoji": "📖", "syllables": ["les", "son"] },
+  { "word": "evening", "cn": "晚上；傍晚", "emoji": "🌆", "syllables": ["eve", "ning"] },
+  { "word": "answer", "cn": "答复；回答", "emoji": "💬", "syllables": ["an", "swer"] },
+  { "word": "ping-pong", "cn": "乒乓球", "emoji": "🏓", "syllables": ["ping", "pong"] },
+  { "word": "night", "cn": "夜；夜晚", "emoji": "🌙", "syllables": ["night"] },
+  { "word": "visit", "cn": "看望；拜访；参观", "emoji": "🚶", "syllables": ["vis", "it"] },
+  { "word": "grandparent", "cn": "祖父；祖母；外祖父；外祖母", "emoji": "👴", "syllables": ["grand", "pa", "rent"] }
+]

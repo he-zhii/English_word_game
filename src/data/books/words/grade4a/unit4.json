@@ -1,0 +1,16 @@
+[
+  { "word": "firefighter", "cn": "消防队员", "emoji": "🧑‍🚒", "syllables": ["firefighter"] },
+  { "word": "why", "cn": "为什么", "emoji": "❓", "syllables": ["why"] },
+  { "word": "driver", "cn": "司机", "emoji": "🧑‍✈️", "syllables": ["driver"] },
+  { "word": "cleaner", "cn": "清洁工", "emoji": "🧹", "syllables": ["cleaner"] },
+  { "word": "cook", "cn": "厨师", "emoji": "🧑‍🍳", "syllables": ["cook"] },
+  { "word": "delivery worker", "cn": "快递员", "emoji": "📦", "syllables": ["delivery", "worker"] },
+  { "word": "police officer", "cn": "警察；警员", "emoji": "👮", "syllables": ["police", "officer"] },
+  { "word": "a lot of", "cn": "大量；许多", "emoji": "📚", "syllables": ["a", "lot", "of"] },
+  { "word": "now", "cn": "现在", "emoji": "⏰", "syllables": ["now"] },
+  { "word": "make the bed", "cn": "铺床", "emoji": "🛏️", "syllables": ["make", "the", "bed"] },
+  { "word": "old", "cn": "过去的；年纪大的；老的", "emoji": "👴", "syllables": ["old"] },
+  { "word": "tell", "cn": "讲述；告诉", "emoji": "🗣️", "syllables": ["tell"] },
+  { "word": "everyone", "cn": "每人", "emoji": "👥", "syllables": ["everyone"] },
+  { "word": "Ms", "cn": "（用于女子的姓氏或姓名前，不指明婚否）女士", "emoji": "👩", "syllables": ["Ms"] }
+]

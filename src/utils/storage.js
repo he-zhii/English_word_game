@@ -2,7 +2,7 @@
 
 import { KEYS, MEMORY_INTERVALS } from '../constants';
 
-const DEFAULT_BOOK_ID = 'grade3a';
+const DEFAULT_BOOK_ID = 'grade4a';
 
 export const getCurrentBookId = () => {
   try {

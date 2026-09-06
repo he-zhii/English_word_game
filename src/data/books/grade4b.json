@@ -1,0 +1,14 @@
+{
+  "id": "grade4b",
+  "title": "四年级下册",
+  "subtitle": "Book 4B",
+  "units": [
+    { "id": 1, "title": "教室规则", "subtitle": "Class Rules", "themeColor": "bg-stone-100 border-stone-300 text-stone-600", "icon": "School" },
+    { "id": 2, "title": "我的家", "subtitle": "My Home", "themeColor": "bg-red-100 border-red-300 text-red-600", "icon": "Sofa" },
+    { "id": 3, "title": "学校作息", "subtitle": "School Day", "themeColor": "bg-violet-100 border-violet-300 text-violet-600", "icon": "Clock" },
+    { "id": 4, "title": "购物衣物", "subtitle": "Shopping", "themeColor": "bg-emerald-100 border-emerald-300 text-emerald-600", "icon": "ShoppingBag" },
+    { "id": 5, "title": "农场与食物", "subtitle": "On the Farm", "themeColor": "bg-lime-100 border-lime-300 text-lime-600", "icon": "Carrot" },
+    { "id": 6, "title": "饮食餐桌", "subtitle": "Meals & Table", "themeColor": "bg-fuchsia-100 border-fuchsia-300 text-fuchsia-600", "icon": "Soup" },
+    { "id": 7, "title": "数字专题", "subtitle": "Numbers 1-100", "themeColor": "bg-stone-100 border-stone-300 text-stone-600", "icon": "ListOrdered" }
+  ]
+}

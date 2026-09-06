@@ -1,0 +1,13 @@
+{
+  "id": "grade5a",
+  "title": "五年级上册",
+  "subtitle": "Book 5A",
+  "units": [
+    { "id": 1, "title": "人物与才能", "subtitle": "People & Talents", "themeColor": "bg-blue-100 border-blue-300 text-blue-600", "icon": "G5U1People" },
+    { "id": 2, "title": "情绪与家庭", "subtitle": "Feelings & Family", "themeColor": "bg-orange-100 border-orange-300 text-orange-600", "icon": "G5U2Family" },
+    { "id": 3, "title": "学校课程", "subtitle": "School Schedule", "themeColor": "bg-cyan-100 border-cyan-300 text-cyan-600", "icon": "G5U3Schedule" },
+    { "id": 4, "title": "健康生活", "subtitle": "Healthy Life", "themeColor": "bg-green-100 border-green-300 text-green-600", "icon": "G5U4Health" },
+    { "id": 5, "title": "日常习惯", "subtitle": "Daily Habits", "themeColor": "bg-indigo-100 border-indigo-300 text-indigo-600", "icon": "G5U5Habits" },
+    { "id": 6, "title": "食物与饮食", "subtitle": "Food & Drinks", "themeColor": "bg-yellow-100 border-yellow-300 text-yellow-600", "icon": "G5U6Food" }
+  ]
+}

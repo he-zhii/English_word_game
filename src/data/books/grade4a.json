@@ -1,0 +1,13 @@
+{
+  "id": "grade4a",
+  "title": "四年级上册",
+  "subtitle": "Book 4A",
+  "units": [
+    { "id": 1, "title": "职业与家务", "subtitle": "Jobs & Chores", "themeColor": "bg-red-100 border-red-300 text-red-600", "icon": "Briefcase" },
+    { "id": 2, "title": "朋友与我", "subtitle": "Friends & Me", "themeColor": "bg-violet-100 border-violet-300 text-violet-600", "icon": "UserCheck" },
+    { "id": 3, "title": "社区场所", "subtitle": "Around Town", "themeColor": "bg-emerald-100 border-emerald-300 text-emerald-600", "icon": "Building2" },
+    { "id": 4, "title": "城市职业", "subtitle": "Jobs Around Town", "themeColor": "bg-lime-100 border-lime-300 text-lime-600", "icon": "Hammer" },
+    { "id": 5, "title": "天气与活动", "subtitle": "Weather & Fun", "themeColor": "bg-fuchsia-100 border-fuchsia-300 text-fuchsia-600", "icon": "CloudSun" },
+    { "id": 6, "title": "衣物与季节", "subtitle": "Clothes & Seasons", "themeColor": "bg-stone-100 border-stone-300 text-stone-600", "icon": "Shirt" }
+  ]
+}

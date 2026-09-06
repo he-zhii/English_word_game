@@ -1,0 +1,21 @@
+[
+  { "word": "run", "cn": "（过去式 ran）跑；奔跑", "emoji": "🏃", "syllables": ["run"] },
+  { "word": "race", "cn": "赛跑；速度竞赛", "emoji": "🏁", "syllables": ["race"] },
+  { "word": "cheer", "cn": "欢呼；加油", "emoji": "📣", "syllables": ["cheer"] },
+  { "word": "book fair", "cn": "书市", "emoji": "📚", "syllables": ["book", "fair"] },
+  { "word": "writer", "cn": "作家；作者", "emoji": "✍️", "syllables": ["writ", "er"] },
+  { "word": "read", "cn": "（过去式 read）阅读", "emoji": "📖", "syllables": ["read"] },
+  { "word": "make", "cn": "（过去式 made）做；使出现", "emoji": "🔧", "syllables": ["make"] },
+  { "word": "sing", "cn": "（过去式 sang）唱（歌）；演唱", "emoji": "🎤", "syllables": ["sing"] },
+  { "word": "wear", "cn": "（过去式 wore）穿；戴", "emoji": "👕", "syllables": ["wear"] },
+  { "word": "yesterday", "cn": "昨天", "emoji": "📅", "syllables": ["yes", "ter", "day"] },
+  { "word": "notice", "cn": "通知", "emoji": "📢", "syllables": ["no", "tice"] },
+  { "word": "wake", "cn": "（过去式 woke）醒；醒来", "emoji": "🌅", "syllables": ["wake"] },
+  { "word": "later", "cn": "随后；后来", "emoji": "⏭️", "syllables": ["la", "ter"] },
+  { "word": "judge", "cn": "裁判", "emoji": "⚖️", "syllables": ["judge"] },
+  { "word": "begin", "cn": "（过去式 began）开始", "emoji": "▶️", "syllables": ["be", "gin"] },
+  { "word": "win", "cn": "（过去式 won）获胜", "emoji": "🏆", "syllables": ["win"] },
+  { "word": "winner", "cn": "获胜的人（或队）；成功者", "emoji": "🏅", "syllables": ["win", "ner"] },
+  { "word": "ever", "cn": "（进行比较时用于加强语气）以往任何时候", "emoji": "⌛", "syllables": ["ev", "er"] },
+  { "word": "exciting", "cn": "令人激动的", "emoji": "🎉", "syllables": ["ex", "cit", "ing"] }
+]

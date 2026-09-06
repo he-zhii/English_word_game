@@ -1,0 +1,16 @@
+[
+  { "word": "over", "cn": "结束（的）", "emoji": "🏁", "syllables": ["over"] },
+  { "word": "kid", "cn": "小孩", "emoji": "🧒", "syllables": ["kid"] },
+  { "word": "dinner", "cn": "（中午或晚上吃的）正餐", "emoji": "🍽️", "syllables": ["dinner"] },
+  { "word": "art", "cn": "美术；艺术", "emoji": "🎨", "syllables": ["art"] },
+  { "word": "lunch", "cn": "午餐", "emoji": "🥪", "syllables": ["lunch"] },
+  { "word": "maths", "cn": "数学", "emoji": "➗", "syllables": ["maths"] },
+  { "word": "get up", "cn": "起床", "emoji": "⏰", "syllables": ["get", "up"] },
+  { "word": "go to school", "cn": "上学", "emoji": "🏫", "syllables": ["go", "to", "school"] },
+  { "word": "go home", "cn": "回家", "emoji": "🏠", "syllables": ["go", "home"] },
+  { "word": "go to bed", "cn": "上床睡觉", "emoji": "🛏️", "syllables": ["go", "to", "bed"] },
+  { "word": "want", "cn": "想要", "emoji": "🙋", "syllables": ["want"] },
+  { "word": "clock", "cn": "时钟", "emoji": "🕒", "syllables": ["clock"] },
+  { "word": "just", "cn": "只是；仅仅；正要", "emoji": "☝️", "syllables": ["just"] },
+  { "word": "minute", "cn": "分钟", "emoji": "⏱️", "syllables": ["minute"] }
+]

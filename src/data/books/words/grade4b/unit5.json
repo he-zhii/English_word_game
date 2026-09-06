@@ -1,0 +1,15 @@
+[
+  { "word": "cow", "cn": "奶牛", "emoji": "🐄", "syllables": ["cow"] },
+  { "word": "horse", "cn": "马", "emoji": "🐎", "syllables": ["horse"] },
+  { "word": "sheep", "cn": "羊；绵羊", "emoji": "🐑", "syllables": ["sheep"] },
+  { "word": "pig", "cn": "猪", "emoji": "🐖", "syllables": ["pig"] },
+  { "word": "chicken", "cn": "鸡；鸡肉", "emoji": "🐔", "syllables": ["chicken"] },
+  { "word": "tomato", "cn": "西红柿", "emoji": "🍅", "syllables": ["tomato"] },
+  { "word": "bee", "cn": "蜜蜂", "emoji": "🐝", "syllables": ["bee"] },
+  { "word": "mouse", "cn": "老鼠（复数 mice）", "emoji": "🐁", "syllables": ["mouse"] },
+  { "word": "carrot", "cn": "胡萝卜", "emoji": "🥕", "syllables": ["carrot"] },
+  { "word": "potato", "cn": "土豆", "emoji": "🥔", "syllables": ["potato"] },
+  { "word": "green bean", "cn": "青刀豆；四季豆", "emoji": "🫘", "syllables": ["green", "bean"] },
+  { "word": "can", "cn": "（盛食品或饮料的）金属罐", "emoji": "🥫", "syllables": ["can"] },
+  { "word": "a box of", "cn": "一盒；一箱（东西）", "emoji": "📦", "syllables": ["a", "box", "of"] }
+]
